@@ -1,16 +1,22 @@
-# Ignore node_modules and dependency directories
+# Dependencies
 node_modules/
-vendor/
 
-# Ignore build artifacts
-dist/
-build/
+# Environment variables — never commit this
+.env
+
+# Logs
+logs/
 *.log
+npm-debug.log*
 
-# Ignore system-generated files
+# OS files
 .DS_Store
 Thumbs.db
 
-# Ignore environment and secret files
-.env
-config.json
+# Editor folders
+.vscode/
+.idea/
+
+# Build output
+dist/
+build/
