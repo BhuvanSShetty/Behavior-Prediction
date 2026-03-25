@@ -27,9 +27,18 @@ const sessionSchema = new mongoose.Schema({
 
     //ml predection results
     prediction: {
-        state:        { type: String, enum: ['Normal', 'Bored', 'Addicted', 'Unknown' , 'frustrated'], default: 'Unknown' },
+        state:        { type: String, enum: ['Normal', 'Frustrated', 'Addicted', 'Unknown'], default: 'Unknown' },
         confidence:   { type: Number, default: 0 },
         addictionRisk:{ type: Number, default: 0 }, // 0–100
+    },
+
+    // Child feedback used to improve model quality over time
+    feedback: {
+        provided:   { type: Boolean, default: false },
+        isCorrect:  { type: Boolean, default: null },
+        actualState:{ type: String, enum: ['Normal', 'Frustrated', 'Addicted', 'Unknown'], default: 'Unknown' },
+        note:       { type: String, default: '' },
+        providedAt: { type: Date, default: null },
     },
 
     // alerts 
