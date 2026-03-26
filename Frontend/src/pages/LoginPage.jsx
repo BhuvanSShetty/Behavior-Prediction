@@ -22,7 +22,7 @@ export default function LoginPage() {
       const user = mode === 'login'
         ? await login(form.email, form.password)
         : await register(form)
-      navigate(user.role === 'parent' ? '/dashboard' : '/history')
+      navigate(user.role === 'parent' ? '/dashboard' : '/')
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong')
     } finally {

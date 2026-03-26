@@ -1,6 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useWebSocket } from '../hooks/useWebSocket'
 
 const Icon = ({ d }) => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -8,9 +7,8 @@ const Icon = ({ d }) => (
   </svg>
 )
 
-export const Sidebar = () => {
+export const Sidebar = ({ connected = false }) => {
   const { user, logout } = useAuth()
-  const { connected }    = useWebSocket()
   const navigate         = useNavigate()
   const isParent         = user?.role === 'parent'
 

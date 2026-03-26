@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
-import { StateBadge } from '../components/StateBadge'
+
 
 export default function ChildrenPage() {
   const [children, setChildren] = useState([])
