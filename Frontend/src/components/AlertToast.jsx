@@ -1,7 +1,7 @@
 const ALERT_META = {
-  ADDICTION_ALERT:        { label: 'Addiction Risk',     color: 'border-red-500/50 bg-red-950/80',    dot: 'bg-red-500'   },
-  PLAYTIME_LIMIT_EXCEEDED:{ label: 'Playtime Exceeded',  color: 'border-amber-500/50 bg-amber-950/80', dot: 'bg-amber-500' },
-  NIGHT_GAMING_ALERT:     { label: 'Night Gaming',       color: 'border-brand-500/50 bg-brand-950/80', dot: 'bg-brand-400' },
+  ADDICTION_ALERT:        { label: 'Addiction Risk',     color: 'border-red-500/20 bg-red-950/40',     dot: 'bg-red-500',   glow: '' },
+  PLAYTIME_LIMIT_EXCEEDED:{ label: 'Playtime Exceeded',  color: 'border-amber-500/20 bg-amber-950/40', dot: 'bg-amber-500', glow: '' },
+  NIGHT_GAMING_ALERT:     { label: 'Night Gaming',       color: 'border-brand-500/20 bg-brand-950/40', dot: 'bg-brand-400', glow: '' },
 }
 
 export const AlertToast = ({ alert, onDismiss }) => {
@@ -15,13 +15,15 @@ export const AlertToast = ({ alert, onDismiss }) => {
   }
 
   return (
-    <div className={`slide-in flex items-start gap-3 p-4 rounded-xl border ${meta.color} backdrop-blur-sm shadow-lg max-w-sm`}>
-      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 pulse-dot ${meta.dot}`} />
+    <div className={`slide-in flex items-start gap-4 p-4 rounded-xl border ${meta.color} shadow-lg max-w-sm`}>
+      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 pulse-dot ${meta.dot} ${meta.glow || ''}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-100">{meta.label}</p>
-        <p className="text-xs text-slate-400 mt-0.5">{detail()}</p>
+        <p className="text-sm font-semibold text-slate-100">{meta.label}</p>
+        <p className="text-xs font-medium text-slate-400 mt-1">{detail()}</p>
       </div>
-      <button onClick={() => onDismiss(alert.id)} className="text-slate-500 hover:text-slate-300 text-lg leading-none">×</button>
+      <button onClick={() => onDismiss(alert.id)} className="w-6 h-6 flex items-center justify-center rounded-full text-slate-500 hover:text-white hover:bg-white/10 transition-colors leading-none flex-shrink-0">
+        ×
+      </button>
     </div>
   )
 }

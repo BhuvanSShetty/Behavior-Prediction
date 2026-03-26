@@ -121,58 +121,58 @@ export default function ChildDashboardPage() {
       </div>
 
       {/* Main stats grid */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Today's playtime */}
-        <div className="card border border-slate-700 hover:border-slate-600 transition-colors">
-          <div className="flex items-start justify-between mb-4">
+        <div className="card-glass border-white/5 hover:border-white/10 transition-colors flex flex-col">
+          <div className="flex items-start justify-between mb-6">
             <div>
-              <p className="text-xs text-slate-500 font-medium uppercase">Today's playtime</p>
-              <p className="text-3xl font-bold text-slate-100 mt-2">{formatDuration(stats.totalToday)}</p>
-              <p className="text-xs text-slate-500 mt-1"></p>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Today's playtime</p>
+              <p className="text-4xl font-bold text-white mt-3 tracking-tight">{formatDuration(stats.totalToday)}</p>
             </div>
-            <div className="w-10 h-10 bg-brand-600/20 rounded-lg flex items-center justify-center text-brand-400 text-lg">
+            <div className="w-12 h-12 bg-brand-600/20 rounded-xl flex items-center justify-center text-brand-400 text-xl border border-brand-500/20">
               🎮
             </div>
           </div>
-          <div className="pt-3 border-t border-slate-800">
-            <p className="text-xs text-slate-600">
-              This week: <span className="text-slate-300 font-medium">{formatDuration(stats.totalWeek)}</span>
+          <div className="mt-auto pt-4 border-t border-white/5">
+            <p className="text-sm text-slate-500 font-medium">
+              This week: <span className="text-slate-300 ml-1">{formatDuration(stats.totalWeek)}</span>
             </p>
           </div>
         </div>
 
         {/* Sessions today */}
-        <div className="card border border-slate-700 hover:border-slate-600 transition-colors">
-          <div className="flex items-start justify-between mb-4">
+        <div className="card-glass border-white/5 hover:border-white/10 transition-colors flex flex-col">
+          <div className="flex items-start justify-between mb-6">
             <div>
-              <p className="text-xs text-slate-500 font-medium uppercase">Sessions today</p>
-              <p className="text-3xl font-bold text-slate-100 mt-2">{stats.sessionsToday}</p>
-              <p className="text-xs text-slate-500 mt-1">active sessions</p>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Sessions today</p>
+              <p className="text-4xl font-bold text-white mt-3 tracking-tight">{stats.sessionsToday}</p>
+              <p className="text-sm text-slate-500 mt-1 font-medium">active sessions</p>
             </div>
-            <div className="w-10 h-10 bg-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-400 text-lg">
+            <div className="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center text-emerald-400 text-xl border border-emerald-500/20">
               📊
             </div>
           </div>
-          <div className="pt-3 border-t border-slate-800">
-            <p className="text-xs text-slate-600">
-              Avg: <span className="text-slate-300 font-medium">
-                {stats.sessionsToday > 0 ? formatDuration(stats.totalToday / stats.sessionsToday) : '0s'}/session
+          <div className="mt-auto pt-4 border-t border-white/5">
+            <p className="text-sm text-slate-500 font-medium">
+              Avg: <span className="text-slate-300 ml-1">
+                {stats.sessionsToday > 0 ? formatDuration(stats.totalToday / stats.sessionsToday) : '0s'} / session
               </span>
             </p>
           </div>
         </div>
 
         {/* Current status */}
-        <div className={`card border border-slate-700 hover:border-slate-600 transition-colors bg-${risk.color}-950/20`}>
-          <div className="flex items-start justify-between mb-4">
+        <div className={`card-glass border-white/5 hover:border-white/10 transition-colors overflow-hidden relative flex flex-col`}>
+          <div className={`absolute inset-0 bg-${risk.color}-500/5 mix-blend-overlay pointer-events-none`} />
+          <div className="flex items-start justify-between mb-4 relative z-10">
             <div>
-              <p className="text-xs text-slate-500 font-medium uppercase">Your status</p>
-              <div className="mt-2">
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Your status</p>
+              <div className="mt-4">
                 <StateBadge state={stats.latestState} />
               </div>
-              <p className="text-xs text-slate-500 mt-2">Based on latest session</p>
+              <p className="text-sm text-slate-500 mt-3 font-medium">Based on latest session</p>
             </div>
-            <div className={`w-10 h-10 bg-${risk.color}-600/20 rounded-lg flex items-center justify-center text-${risk.color}-400 text-lg`}>
+            <div className={`w-12 h-12 bg-${risk.color}-600/20 rounded-xl flex items-center justify-center text-${risk.color}-400 text-xl border border-${risk.color}-500/20`}>
               {risk.icon}
             </div>
           </div>
@@ -180,36 +180,40 @@ export default function ChildDashboardPage() {
       </div>
 
       {/* Action cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
         <button 
           onClick={() => navigate('/history')}
-          className="card border border-slate-700 hover:border-slate-600 hover:bg-slate-800/50 transition-all group cursor-pointer"
+          className="card-glass w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer"
         >
-          <div className="flex items-start justify-between">
-            <div className="text-left">
-              <p className="text-xs text-slate-500 font-medium uppercase">View all sessions</p>
-              <p className="text-slate-300 font-medium mt-2 group-hover:text-slate-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">View all sessions</p>
+              <p className="text-xl text-white font-semibold group-hover:text-brand-300 transition-colors">
                 {sessions.length} total sessions
               </p>
-              <p className="text-xs text-slate-600 mt-1">See detailed history</p>
+              <p className="text-sm text-slate-500 mt-1">See detailed history</p>
             </div>
-            <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
+            <div className="w-10 h-10 rounded-full bg-surface-variant/50 flex items-center justify-center group-hover:bg-brand-600/20 transition-colors">
+              <span className="text-xl text-slate-400 group-hover:text-brand-400 group-hover:translate-x-1 transition-all">→</span>
+            </div>
           </div>
         </button>
 
         <button 
           onClick={() => {}} 
-          className="card border border-slate-700 hover:border-slate-600 hover:bg-slate-800/50 transition-all group cursor-pointer"
+          className="card-glass w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer"
         >
-          <div className="flex items-start justify-between">
-            <div className="text-left">
-              <p className="text-xs text-slate-500 font-medium uppercase">Gaming tips</p>
-              <p className="text-slate-300 font-medium mt-2 group-hover:text-slate-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">Gaming tips</p>
+              <p className="text-xl text-white font-semibold group-hover:text-emerald-300 transition-colors">
                 Stay healthy
               </p>
-              <p className="text-xs text-slate-600 mt-1">Get recommendations</p>
+              <p className="text-sm text-slate-500 mt-1">Get recommendations</p>
             </div>
-            <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
+            <div className="w-10 h-10 rounded-full bg-surface-variant/50 flex items-center justify-center group-hover:bg-emerald-600/20 transition-colors">
+              <span className="text-xl text-slate-400 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all">→</span>
+            </div>
           </div>
         </button>
       </div>
@@ -223,20 +227,20 @@ export default function ChildDashboardPage() {
               const startTime = new Date(s.raw?.start || s.createdAt)
               const endTime = new Date(s.raw?.end || new Date().toISOString())
               return (
-                <div key={s._id} className="card p-3 flex items-center justify-between hover:border-slate-700 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs font-mono text-slate-400">
+                <div key={s._id} className="card-glass p-5 flex items-center justify-between hover:border-surface-variant/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-surface-variant/50 flex items-center justify-center text-sm font-mono text-brand-300 shadow-inner shadow-white/5">
                       {idx + 1}
                     </div>
                     <div>
-                      <p className="text-sm text-slate-200">
+                      <p className="text-base font-semibold text-slate-100">
                         {startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         {' '}
-                        <span className="text-slate-600">to</span>
+                        <span className="text-slate-500 font-normal mx-1">to</span>
                         {' '}
                         {endTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm text-slate-400 mt-0.5 font-medium">
                         {formatDuration(s.raw?.duration || 0)}
                       </p>
                     </div>
