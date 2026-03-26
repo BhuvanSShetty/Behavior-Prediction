@@ -96,11 +96,13 @@ export default function DashboardPage() {
       {dashboard && !loading && (
         <>
           {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <StatCard label="Play time today" value={formatDuration(dashboard.todayPlayTime)} sub={`${dashboard.sessionCount} sessions`} />
             <StatCard label="Addiction risk"  value={`${dashboard.addictionRisk}/100`}
-              sub={<StateBadge state={dashboard.state} />}
+              sub="Risk from latest session"
               accent={riskColor(dashboard.addictionRisk)} />
+            <StatCard label="Predicted state" value={dashboard.state || 'Unknown'}
+              sub={<StateBadge state={dashboard.state} />} />
             <StatCard label="Weekly trend"    value={`${dashboard.trend >= 0 ? '+' : ''}${formatDuration(Math.abs(dashboard.trend))}`}
               accent={trendColor(dashboard.trend)} sub="vs oldest day this week" />
             <StatCard label="Night sessions"  value={dashboard.nightSessions}
