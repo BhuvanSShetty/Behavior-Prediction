@@ -2,7 +2,7 @@ import axios from 'axios';
 import Session from '../models/session.model.js';
 import User from '../models/user.model.js';
 import { computeFeatures, evaluateAlerts } from '../utils/featureEngine.js';
-import { pushAlert, pushToUser } from '../utils/websocket.js';
+import { pushAlert } from '../utils/websocket.js';
 import { sendAddictionAlert, sendPlaytimeLimitAlert, sendNightGamingAlert } from '../utils/mailer.js';
 
 const ML_SERVICE_URL  = process.env.ML_SERVICE_URL || 'http://localhost:8000';
@@ -29,10 +29,19 @@ export const logSession = async (req, res) => {
             duration: raw.duration,
         };
 
-        // 1. Fetch today + week sessions for feature computation
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        // 1. Fetch today + week sessions for feature computation (IST boundaries)
+        const parts = new Intl.DateTimeFormat('en-IN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            timeZone: 'Asia/Kolkata'
+        }).formatToParts(new Date());
+        const year = parts.find((p) => p.type === 'year')?.value;
+        const month = parts.find((p) => p.type === 'month')?.value;
+        const day = parts.find((p) => p.type === 'day')?.value;
+
+        const startOfToday = new Date(`${year}-${month}-${day}T00:00:00+05:30`);
+        const weekAgo = new Date(startOfToday.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         const [todayDocs, weekDocs] = await Promise.all([
             Session.find({ userId, 'raw.start': { $gte: startOfToday } }, 'raw').lean(),
@@ -123,18 +132,7 @@ export const logSession = async (req, res) => {
             });
         }
 
-        // 8. Ask child to confirm prediction (feedback for retraining)
-        // Ask for all states — every correction improves the model
-        if (prediction.state !== 'Unknown') {
-            pushToUser(userId, {
-                type:           'PREDICTION_FEEDBACK_REQUEST',
-                sessionId:      session._id,
-                predictedState: prediction.state,
-                message:        'Was this prediction correct?',
-            });
-        }
-
-        // 9. Respond to mobile
+        // 8. Respond to mobile
         res.status(201).json({ session, features, prediction, alerts });
 
     } catch (err) {
@@ -159,7 +157,7 @@ export const getMySessions = async (req, res) => {
 export const submitSessionFeedback = async (req, res) => {
     try {
         const { sessionId }              = req.params;
-        const { isCorrect, actualState, note } = req.body;
+        const { isCorrect, actualState } = req.body;
         const userId = req.user._id.toString();
 
         if (typeof isCorrect !== 'boolean') {
@@ -182,26 +180,9 @@ export const submitSessionFeedback = async (req, res) => {
             provided:    true,
             isCorrect,
             actualState: resolvedState,
-            note:        typeof note === 'string' ? note.trim().slice(0, 500) : '',
             providedAt:  new Date(),
         };
         await session.save();
-
-        // Forward to ML service for retraining pipeline (best effort)
-        try {
-            await axios.post(`${ML_SERVICE_URL}/feedback`, {
-                sessionId:      session._id,
-                userId,
-                predictedState: session.prediction.state,
-                actualState:    resolvedState,
-                isCorrect,
-                note:           session.feedback.note,
-                features:       session.features,
-                createdAt:      session.feedback.providedAt,
-            });
-        } catch {
-            console.warn('ML /feedback unreachable — feedback stored in MongoDB only');
-        }
 
         res.json({ message: 'Feedback saved', feedback: session.feedback });
 

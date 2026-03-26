@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': 'http://localhost:5050',
+      '/api': 'https://backend-behavior-pred-depoy.onrender.com',
       '/ws': { target: 'ws://localhost:5050', ws: true },
     }
   }

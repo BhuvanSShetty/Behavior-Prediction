@@ -39,7 +39,7 @@ export default function AlertsPage() {
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-4">
                   <p className={`text-sm font-medium ${meta.text}`}>{meta.label}</p>
-                  <span className="text-xs text-slate-600">{new Date(alert.id).toLocaleTimeString()}</span>
+                  <span className="text-xs text-slate-600">{new Date(alert.id).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</span>
                 </div>
                 <div className="mt-2 space-y-1 text-xs text-slate-400">
                   {alert.type === 'ADDICTION_ALERT' && (
@@ -55,7 +55,7 @@ export default function AlertsPage() {
                     </>
                   )}
                   {alert.type === 'NIGHT_GAMING_ALERT' && (
-                    <p>Session started at: <span className="text-slate-200">{new Date(alert.startedAt).toLocaleTimeString()}</span></p>
+                    <p>Session started at: <span className="text-slate-200">{new Date(alert.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</span></p>
                   )}
                 </div>
               </div>

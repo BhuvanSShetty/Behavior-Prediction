@@ -15,8 +15,30 @@ const sortedByStart = (sessions) =>
 const gapMinutes = (a, b) =>
     (new Date(b.start) - new Date(a.end)) / 60_000;
 
-// Hour (0-23) that a session started
-const startHour = (s) => new Date(s.start).getHours();
+// Hour (0-23) that a session started in IST (Asia/Kolkata timezone)
+const startHour = (s) => {
+    const date = new Date(s.start);
+    return Number(new Intl.DateTimeFormat('en-IN', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: 'Asia/Kolkata'
+    }).format(date));
+};
+
+// Calendar day key in IST, e.g. "2026-03-27"
+const istDayKey = (dateInput) => {
+    const parts = new Intl.DateTimeFormat('en-IN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'Asia/Kolkata'
+    }).formatToParts(new Date(dateInput));
+
+    const year = parts.find((p) => p.type === 'year')?.value;
+    const month = parts.find((p) => p.type === 'month')?.value;
+    const day = parts.find((p) => p.type === 'day')?.value;
+    return `${year}-${month}-${day}`;
+};
 
 // ── feature 8: trend ─────────────────────────────────────────────────────────
 // Sum durations per calendar day across weekSessions, then:
@@ -24,10 +46,10 @@ const startHour = (s) => new Date(s.start).getHours();
 const computeTrend = (allSessionsThisWeek, todayTotalTime) => {
     if (allSessionsThisWeek.length === 0) return 0;
 
-    // Group by date string "YYYY-MM-DD"
+    // Group by IST calendar day "YYYY-MM-DD"
     const byDay = {};
     for (const s of allSessionsThisWeek) {
-        const day = new Date(s.start).toISOString().slice(0, 10);
+        const day = istDayKey(s.start);
         byDay[day] = (byDay[day] || 0) + s.duration;
     }
 

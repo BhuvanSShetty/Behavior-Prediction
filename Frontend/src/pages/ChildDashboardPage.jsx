@@ -4,6 +4,30 @@ import { StateBadge } from '../components/StateBadge'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
+// Format decimal minutes to "X min Y sec" or just "X sec"
+const formatDuration = (minutes) => {
+  if (!minutes || minutes === 0) return '0 sec'
+  const mins = Math.floor(minutes)
+  const secs = Math.round((minutes - mins) * 60)
+  if (mins === 0) return `${secs} sec`
+  if (secs === 0) return `${mins} min`
+  return `${mins} min ${secs} sec`
+}
+
+const istDayKey = (dateInput) => {
+  const parts = new Intl.DateTimeFormat('en-IN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Kolkata'
+  }).formatToParts(new Date(dateInput))
+
+  const year = parts.find(p => p.type === 'year')?.value
+  const month = parts.find(p => p.type === 'month')?.value
+  const day = parts.find(p => p.type === 'day')?.value
+  return `${year}-${month}-${day}`
+}
+
 export default function ChildDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -33,19 +57,29 @@ export default function ChildDashboardPage() {
   }
 
   const calculateStats = (data) => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const parts = new Intl.DateTimeFormat('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Kolkata'
+    }).formatToParts(new Date())
+
+    const year = parts.find(p => p.type === 'year')?.value
+    const month = parts.find(p => p.type === 'month')?.value
+    const day = parts.find(p => p.type === 'day')?.value
+
+    const todayIST = new Date(`${year}-${month}-${day}T00:00:00+05:30`);
+    const weekAgoIST = new Date(todayIST.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const todayKeyIST = istDayKey(todayIST)
 
     const todaySessions = data.filter(s => {
       const sessionDate = new Date(s.raw?.start || s.createdAt)
-      const sDate = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
-      return sDate.getTime() === today.getTime()
+      return istDayKey(sessionDate) === todayKeyIST
     })
 
     const weekSessions = data.filter(s => {
       const sessionDate = new Date(s.raw?.start || s.createdAt)
-      return sessionDate >= weekAgo
+      return sessionDate >= weekAgoIST
     })
 
     const totalToday = todaySessions.reduce((sum, s) => sum + (s.raw?.duration || 0), 0)
@@ -81,7 +115,7 @@ export default function ChildDashboardPage() {
             Hey {user?.name?.split(' ')[0]} 👋
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })}
           </p>
         </div>
       </div>
@@ -93,8 +127,8 @@ export default function ChildDashboardPage() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-xs text-slate-500 font-medium uppercase">Today's playtime</p>
-              <p className="text-3xl font-bold text-slate-100 mt-2">{stats.totalToday}</p>
-              <p className="text-xs text-slate-500 mt-1">minutes</p>
+              <p className="text-3xl font-bold text-slate-100 mt-2">{formatDuration(stats.totalToday)}</p>
+              <p className="text-xs text-slate-500 mt-1"></p>
             </div>
             <div className="w-10 h-10 bg-brand-600/20 rounded-lg flex items-center justify-center text-brand-400 text-lg">
               🎮
@@ -102,7 +136,7 @@ export default function ChildDashboardPage() {
           </div>
           <div className="pt-3 border-t border-slate-800">
             <p className="text-xs text-slate-600">
-              This week: <span className="text-slate-300 font-medium">{stats.totalWeek} min</span>
+              This week: <span className="text-slate-300 font-medium">{formatDuration(stats.totalWeek)}</span>
             </p>
           </div>
         </div>
@@ -122,7 +156,7 @@ export default function ChildDashboardPage() {
           <div className="pt-3 border-t border-slate-800">
             <p className="text-xs text-slate-600">
               Avg: <span className="text-slate-300 font-medium">
-                {stats.sessionsToday > 0 ? Math.round(stats.totalToday / stats.sessionsToday) : 0} min/session
+                {stats.sessionsToday > 0 ? formatDuration(stats.totalToday / stats.sessionsToday) : '0s'}/session
               </span>
             </p>
           </div>
@@ -203,7 +237,7 @@ export default function ChildDashboardPage() {
                         {endTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {s.raw?.duration || 0} minutes
+                        {formatDuration(s.raw?.duration || 0)}
                       </p>
                     </div>
                   </div>

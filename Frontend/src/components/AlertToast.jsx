@@ -10,7 +10,7 @@ export const AlertToast = ({ alert, onDismiss }) => {
   const detail = () => {
     if (alert.type === 'ADDICTION_ALERT')         return `Daily: ${alert.dailyTotalTime} min · Risk: ${alert.trend > 0 ? '+' : ''}${alert.trend} trend`
     if (alert.type === 'PLAYTIME_LIMIT_EXCEEDED') return `${alert.dailyTotalTime} min played · Limit: ${alert.limit} min`
-    if (alert.type === 'NIGHT_GAMING_ALERT')      return `Session started at ${new Date(alert.startedAt).toLocaleTimeString()}`
+    if (alert.type === 'NIGHT_GAMING_ALERT')      return `Session started at ${new Date(alert.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
     return ''
   }
 

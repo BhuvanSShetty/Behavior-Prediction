@@ -2,7 +2,18 @@ import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
 import { StateBadge, RiskBar } from '../components/StateBadge'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { useAuth } from '../context/AuthContext'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+
+// Format decimal minutes to "X min Y sec" or just "X sec"
+const formatDuration = (minutes) => {
+  if (!minutes || minutes === 0) return '0s'
+  const mins = Math.floor(minutes)
+  const secs = Math.round((minutes - mins) * 60)
+  if (mins === 0) return `${secs}s`
+  if (secs === 0) return `${mins}m`
+  return `${mins}m ${secs}s`
+}
 
 const StatCard = ({ label, value, sub, accent }) => (
   <div className="card">
@@ -13,48 +24,51 @@ const StatCard = ({ label, value, sub, accent }) => (
 )
 
 export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth()
   const [children,   setChildren]   = useState([])
   const [selected,   setSelected]   = useState(null)
   const [dashboard,  setDashboard]  = useState(null)
+  const [barData,    setBarData]    = useState([])
   const [loading,    setLoading]    = useState(false)
   const { sessionUpdate } = useWebSocket()
 
   useEffect(() => {
+    if (authLoading || user?.role !== 'parent') return
     api.getChildren().then(r => {
       setChildren(r.data)
       if (r.data.length > 0) setSelected(r.data[0]._id)
     }).catch(() => {})
-  }, [])
+  }, [authLoading, user])
 
   useEffect(() => {
+    if (authLoading || user?.role !== 'parent') return
     if (!selected) return
     setLoading(true)
     api.getDashboard(selected)
       .then(r => setDashboard(r.data))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [selected])
+  }, [selected, authLoading, user])
+
+  useEffect(() => {
+    if (authLoading || user?.role !== 'parent') return
+    if (!selected) return
+    api.getDashboardWeekly(selected)
+      .then(r => setBarData(r.data?.dailyBreakdown || []))
+      .catch(() => {})
+  }, [selected, authLoading, user])
 
   // Refresh dashboard when WS pushes a session update for selected child
   useEffect(() => {
+    if (authLoading || user?.role !== 'parent') return
     if (sessionUpdate?.userId === selected) {
       api.getDashboard(selected).then(r => setDashboard(r.data)).catch(() => {})
+      api.getDashboardWeekly(selected).then(r => setBarData(r.data?.dailyBreakdown || [])).catch(() => {})
     }
-  }, [sessionUpdate])
+  }, [sessionUpdate, selected, authLoading, user])
 
   const riskColor = (risk) => risk >= 70 ? 'text-red-400' : risk >= 40 ? 'text-amber-400' : 'text-emerald-400'
   const trendColor = (t) => t > 0 ? 'text-red-400' : 'text-emerald-400'
-
-  // Mock 7-day bar data from trend
-  const barData = dashboard ? [
-    { day: 'Mon', min: Math.max(10, dashboard.todayPlayTime - 80 - Math.random()*20) },
-    { day: 'Tue', min: Math.max(10, dashboard.todayPlayTime - 60 - Math.random()*20) },
-    { day: 'Wed', min: Math.max(10, dashboard.todayPlayTime - 45 - Math.random()*15) },
-    { day: 'Thu', min: Math.max(10, dashboard.todayPlayTime - 30 - Math.random()*15) },
-    { day: 'Fri', min: Math.max(10, dashboard.todayPlayTime - 20 - Math.random()*10) },
-    { day: 'Sat', min: Math.max(10, dashboard.todayPlayTime - 10 - Math.random()*10) },
-    { day: 'Today', min: dashboard.todayPlayTime },
-  ].map(d => ({ ...d, min: Math.round(d.min) })) : []
 
   return (
     <div className="flex-1 overflow-auto p-6 space-y-6">
@@ -83,11 +97,11 @@ export default function DashboardPage() {
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Play time today" value={`${dashboard.todayPlayTime} min`} sub={`${dashboard.sessionCount} sessions`} />
+            <StatCard label="Play time today" value={formatDuration(dashboard.todayPlayTime)} sub={`${dashboard.sessionCount} sessions`} />
             <StatCard label="Addiction risk"  value={`${dashboard.addictionRisk}/100`}
               sub={<StateBadge state={dashboard.state} />}
               accent={riskColor(dashboard.addictionRisk)} />
-            <StatCard label="Weekly trend"    value={`${dashboard.trend >= 0 ? '+' : ''}${dashboard.trend} min`}
+            <StatCard label="Weekly trend"    value={`${dashboard.trend >= 0 ? '+' : ''}${formatDuration(Math.abs(dashboard.trend))}`}
               accent={trendColor(dashboard.trend)} sub="vs oldest day this week" />
             <StatCard label="Night sessions"  value={dashboard.nightSessions}
               accent={dashboard.nightSessions > 0 ? 'text-brand-400' : 'text-slate-100'}
@@ -103,22 +117,28 @@ export default function DashboardPage() {
           {/* Bar chart */}
           <div className="card">
             <p className="text-sm font-medium text-slate-300 mb-4">Play time this week</p>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={barData} barSize={28}>
-                <XAxis dataKey="day" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} unit=" m" width={40} />
-                <Tooltip
-                  contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                  formatter={(v) => [`${v} min`, 'Play time']}
-                />
-                <Bar dataKey="min" radius={[4,4,0,0]}>
-                  {barData.map((d, i) => (
-                    <Cell key={i} fill={i === barData.length-1 ? '#6366f1' : '#1e293b'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {barData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={barData} barSize={28}>
+                  <XAxis dataKey="day" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} unit=" m" width={40} />
+                  <Tooltip
+                    contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
+                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    formatter={(v) => [formatDuration(v), 'Play time']}
+                  />
+                  <Bar dataKey="min" radius={[4,4,0,0]}>
+                    {barData.map((d, i) => (
+                      <Cell key={i} fill={i === barData.length-1 ? '#6366f1' : '#1e293b'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-40 flex items-center justify-center text-slate-500 text-sm">
+                No playtime data available for this week.
+              </div>
+            )}
           </div>
 
           {/* Active alerts */}

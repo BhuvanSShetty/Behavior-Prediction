@@ -3,6 +3,16 @@ import { api } from '../utils/api'
 import { StateBadge, RiskBar } from '../components/StateBadge'
 import { useAuth } from '../context/AuthContext'
 
+// Format decimal minutes to "X min Y sec" or just "X sec"
+const formatDuration = (minutes) => {
+  if (!minutes || minutes === 0) return '0s'
+  const mins = Math.floor(minutes)
+  const secs = Math.round((minutes - mins) * 60)
+  if (mins === 0) return `${secs}s`
+  if (secs === 0) return `${mins}m`
+  return `${mins}m ${secs}s`
+}
+
 export default function HistoryPage() {
   const { user }                = useAuth()
   const [sessions, setSessions] = useState([])
@@ -15,8 +25,8 @@ export default function HistoryPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const fmt = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  const fmt = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
 
   // Group sessions by date
   const grouped = sessions.reduce((acc, s) => {
@@ -44,7 +54,7 @@ export default function HistoryPage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="card">
               <p className="text-xs text-slate-500 mb-1">Today</p>
-              <p className="text-2xl font-semibold font-mono text-slate-100">{todayTotal} <span className="text-sm text-slate-500">min</span></p>
+              <p className="text-2xl font-semibold font-mono text-slate-100">{formatDuration(todayTotal)} <span className="text-sm text-slate-500"></span></p>
             </div>
             <div className="card">
               <p className="text-xs text-slate-500 mb-1">Sessions today</p>
@@ -81,8 +91,7 @@ export default function HistoryPage() {
                 <div className="flex items-start gap-4">
                   {/* Duration circle */}
                   <div className="w-12 h-12 rounded-xl bg-slate-800 flex flex-col items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-semibold font-mono text-slate-100">{s.raw?.duration}</span>
-                    <span className="text-xs text-slate-500">min</span>
+                    <span className="text-sm font-semibold font-mono text-slate-100">{formatDuration(s.raw?.duration)}</span>
                   </div>
 
                   <div className="flex-1 min-w-0">
