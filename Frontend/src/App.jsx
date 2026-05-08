@@ -1,12 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-import LoginPage     from './pages/LoginPage'
-import Layout        from './pages/Layout'
-import DashboardPage from './pages/DashboardPage'
-import ChildrenPage  from './pages/ChildrenPage'
-import AlertsPage    from './pages/AlertsPage'
-import HistoryPage   from './pages/HistoryPage'
+import LoginPage          from './pages/LoginPage'
+import Layout             from './pages/Layout'
+import DashboardPage      from './pages/DashboardPage'
+import ChildrenPage       from './pages/ChildrenPage'
+import AlertsPage         from './pages/AlertsPage'
+import HistoryPage        from './pages/HistoryPage'
+import ChildDashboardPage from './pages/ChildDashboardPage'
 
 // Guard — redirects to login if not authenticated
 const PrivateRoute = ({ children, role }) => {
@@ -46,6 +47,7 @@ export default function App() {
               <Layout />
             </PrivateRoute>
           }>
+            <Route index element={<ChildDashboardPage />} />
             <Route path="history" element={<HistoryPage />} />
           </Route>
 

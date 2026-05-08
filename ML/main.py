@@ -26,7 +26,6 @@ app = FastAPI(title="Gaming Behavior ML Service")
 
 # ── Load model on startup ─────────────────────────────────────────────────────
 MODEL_PATH    = "model.pkl"
-FEEDBACK_PATH = "feedback_data.csv"
 
 if not os.path.exists(MODEL_PATH):
     raise RuntimeError("model.pkl not found. Run train.py first.")
@@ -116,16 +115,6 @@ class PredictResponse(BaseModel):
     confidence:    float
     addictionRisk: int
 
-class FeedbackRequest(BaseModel):
-    sessionId:      str
-    userId:         str
-    predictedState: str
-    actualState:    str
-    isCorrect:      bool
-    note:           str = ""
-    features:       Features
-    createdAt:      str
-
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -159,37 +148,6 @@ def predict(body: PredictRequest):
             confidence    = confidence,
             addictionRisk = addiction_risk,
         )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/feedback")
-def feedback(body: FeedbackRequest):
-    try:
-        row = {
-            "sessionId":          body.sessionId,
-            "userId":             body.userId,
-            "predictedState":     normalize_state(body.predictedState),
-            "actualState":        normalize_state(body.actualState),
-            "isCorrect":          body.isCorrect,
-            "note":               body.note,
-            "createdAt":          body.createdAt,
-            "avgSessionDuration": body.features.avgSessionDuration,
-            "shortSessionRatio":  body.features.shortSessionRatio,
-            "reopenCount":        body.features.reopenCount,
-            "interSessionGap":    body.features.interSessionGap,
-            "dailyTotalTime":     body.features.dailyTotalTime,
-            "sessionsPerDay":     body.features.sessionsPerDay,
-            "nightCount":         body.features.nightCount,
-            "trend":              body.features.trend,
-        }
-
-        df = pd.DataFrame([row])
-        write_header = not os.path.exists(FEEDBACK_PATH)
-        df.to_csv(FEEDBACK_PATH, mode="a", header=write_header, index=False)
-
-        return {"status": "saved", "path": FEEDBACK_PATH}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

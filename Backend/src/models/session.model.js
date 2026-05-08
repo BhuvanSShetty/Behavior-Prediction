@@ -37,7 +37,6 @@ const sessionSchema = new mongoose.Schema({
         provided:   { type: Boolean, default: false },
         isCorrect:  { type: Boolean, default: null },
         actualState:{ type: String, enum: ['Normal', 'Frustrated', 'Addicted', 'Unknown'], default: 'Unknown' },
-        note:       { type: String, default: '' },
         providedAt: { type: Date, default: null },
     },
 

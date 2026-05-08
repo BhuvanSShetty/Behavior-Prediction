@@ -15,11 +15,11 @@ export const StateBadge = ({ state }) => {
 export const RiskBar = ({ value }) => {
   const color = value >= 70 ? 'bg-red-500' : value >= 40 ? 'bg-amber-500' : 'bg-emerald-500'
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+    <div className="flex items-center gap-3">
+      <div className="flex-1 bg-surface-variant/50 rounded-full h-1.5 overflow-hidden shadow-inner flex items-center">
         <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${value}%` }} />
       </div>
-      <span className="text-xs font-mono text-slate-400 w-8 text-right">{value}</span>
+      <span className="text-xs font-bold font-mono text-slate-400 w-8 text-right block">{value}</span>
     </div>
   )
 }
