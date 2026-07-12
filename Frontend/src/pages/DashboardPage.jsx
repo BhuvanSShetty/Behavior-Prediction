@@ -4,6 +4,8 @@ import { StateBadge, RiskBar } from '../components/StateBadge'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useAuth } from '../context/AuthContext'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { styles } from '../style'
 
 // Format decimal minutes to "X min Y sec" or just "X sec"
 const formatDuration = (minutes) => {
@@ -16,7 +18,7 @@ const formatDuration = (minutes) => {
 }
 
 const StatCard = ({ label, value, sub, accent }) => (
-  <div className="card-glass flex flex-col justify-between min-h-[140px]">
+  <div className={`${styles.card} flex flex-col justify-between min-h-[140px]`}>
     <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">{label}</p>
     <div className="mt-auto">
       <p className={`text-4xl font-bold tracking-tight ${accent || 'text-white'}`}>{value}</p>
@@ -27,47 +29,51 @@ const StatCard = ({ label, value, sub, accent }) => (
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
-  const [children,   setChildren]   = useState([])
   const [selected,   setSelected]   = useState(null)
-  const [dashboard,  setDashboard]  = useState(null)
-  const [barData,    setBarData]    = useState([])
-  const [loading,    setLoading]    = useState(false)
   const { sessionUpdate } = useWebSocket()
+  const queryClient = useQueryClient()
+  const isParent = !authLoading && user?.role === 'parent'
 
-  useEffect(() => {
-    if (authLoading || user?.role !== 'parent') return
-    api.getChildren().then(r => {
-      setChildren(r.data)
-      if (r.data.length > 0) setSelected(r.data[0]._id)
-    }).catch(() => {})
-  }, [authLoading, user])
+  // Fetch children
+  const { data: childrenResponse } = useQuery({
+    queryKey: ['children'],
+    queryFn: api.getChildren,
+    enabled: isParent
+  })
+  const children = childrenResponse?.data || []
 
+  // Auto-select first child
   useEffect(() => {
-    if (authLoading || user?.role !== 'parent') return
-    if (!selected) return
-    setLoading(true)
-    api.getDashboard(selected)
-      .then(r => setDashboard(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [selected, authLoading, user])
+    if (children.length > 0 && !selected) {
+      setSelected(children[0]._id)
+    }
+  }, [children, selected])
 
-  useEffect(() => {
-    if (authLoading || user?.role !== 'parent') return
-    if (!selected) return
-    api.getDashboardWeekly(selected)
-      .then(r => setBarData(r.data?.dailyBreakdown || []))
-      .catch(() => {})
-  }, [selected, authLoading, user])
+  // Fetch Dashboard
+  const { data: dashboardResponse, isLoading: dashboardLoading } = useQuery({
+    queryKey: ['dashboard', selected],
+    queryFn: () => api.getDashboard(selected),
+    enabled: isParent && !!selected
+  })
+  const dashboard = dashboardResponse?.data || null
+
+  // Fetch Weekly
+  const { data: weeklyResponse } = useQuery({
+    queryKey: ['dashboardWeekly', selected],
+    queryFn: () => api.getDashboardWeekly(selected),
+    enabled: isParent && !!selected
+  })
+  const barData = weeklyResponse?.data?.dailyBreakdown || []
 
   // Refresh dashboard when WS pushes a session update for selected child
   useEffect(() => {
-    if (authLoading || user?.role !== 'parent') return
-    if (sessionUpdate?.userId === selected) {
-      api.getDashboard(selected).then(r => setDashboard(r.data)).catch(() => {})
-      api.getDashboardWeekly(selected).then(r => setBarData(r.data?.dailyBreakdown || [])).catch(() => {})
+    if (isParent && sessionUpdate?.userId === selected) {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', selected] })
+      queryClient.invalidateQueries({ queryKey: ['dashboardWeekly', selected] })
     }
-  }, [sessionUpdate, selected, authLoading, user])
+  }, [sessionUpdate, selected, isParent, queryClient])
+
+  const loading = dashboardLoading
 
   const riskColor = (risk) => risk >= 70 ? 'text-red-400' : risk >= 40 ? 'text-amber-400' : 'text-emerald-400'
   const trendColor = (t) => t > 0 ? 'text-red-400' : 'text-emerald-400'
@@ -77,19 +83,19 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">Hi, {user?.name?.split(' ')[0] || 'there'}</h1>
+          <h1 className={styles.heading2}>Hi, {user?.name?.split(' ')[0] || 'there'}</h1>
           <p className="text-sm text-slate-400 mt-1">{new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' })}</p>
         </div>
         {/* Child selector */}
         {children.length > 1 && (
-          <select className="input w-auto text-sm" value={selected || ''} onChange={e => setSelected(e.target.value)}>
+          <select className={`${styles.inputField} w-auto text-sm`} value={selected || ''} onChange={e => setSelected(e.target.value)}>
             {children.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
           </select>
         )}
       </div>
 
       {children.length === 0 && (
-        <div className="card-glass text-center py-20 border-dashed border-surface-variant/50">
+        <div className={`${styles.card} text-center py-20 border-dashed border-surface-variant/50`}>
           <p className="text-slate-400 text-sm font-medium">No children linked yet.</p>
           <p className="text-slate-500 text-xs mt-2">Go to Children → Link Child to get started.</p>
         </div>
@@ -113,13 +119,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Risk bar */}
-          <div className="card-glass mt-6">
+          <div className={`${styles.card} mt-6`}>
             <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-4">Addiction risk score</p>
             <RiskBar value={dashboard.addictionRisk} />
           </div>
 
           {/* Bar chart */}
-          <div className="card-glass mt-6">
+          <div className={`${styles.card} mt-6`}>
             <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-6">Play time this week</p>
             {barData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
@@ -155,7 +161,7 @@ export default function DashboardPage() {
 
           {/* Active alerts */}
           {(dashboard.alerts?.addictionAlert || dashboard.alerts?.nightGamingAlert || dashboard.alerts?.playtimeLimitExceeded) && (
-            <div className="card-glass mt-6 space-y-3">
+            <div className={`${styles.card} mt-6 space-y-3`}>
               <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-4">Active alerts</p>
               {dashboard.alerts.addictionAlert && (
                 <div className="flex items-center gap-4 p-4 bg-red-950/20 border border-red-500/20 rounded-xl">
@@ -182,7 +188,7 @@ export default function DashboardPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className={styles.spinner} />
         </div>
       )}
     </div>

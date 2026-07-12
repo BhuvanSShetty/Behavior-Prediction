@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { api } from '../utils/api'
 import { StateBadge, RiskBar } from '../components/StateBadge'
 import { useAuth } from '../context/AuthContext'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { useQuery } from '@tanstack/react-query'
+import { styles } from '../style'
 
 // Format decimal minutes to "X min Y sec" or just "X sec"
 // Format decimal minutes to "X min Y sec" or just "X sec"
@@ -16,7 +18,7 @@ const formatDuration = (minutes) => {
 }
 
 const StatCard = ({ label, value, sub, accent }) => (
-  <div className="card-glass flex flex-col justify-between min-h-[140px]">
+  <div className={`${styles.card} flex flex-col justify-between min-h-[140px]`}>
     <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">{label}</p>
     <div className="mt-auto">
       <p className={`text-4xl font-bold tracking-tight ${accent || 'text-white'}`}>{value}</p>
@@ -26,16 +28,14 @@ const StatCard = ({ label, value, sub, accent }) => (
 )
 
 export default function HistoryPage() {
-  const { user }                = useAuth()
-  const [sessions, setSessions] = useState([])
-  const [loading,  setLoading]  = useState(true)
+  const { user } = useAuth()
 
-  useEffect(() => {
-    api.getSessions()
-      .then(r => setSessions(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: sessionResponse, isLoading: loading } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: api.getSessions
+  })
+
+  const sessions = sessionResponse?.data || []
 
   const fmt = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
   const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
@@ -74,7 +74,7 @@ export default function HistoryPage() {
     <div className="flex-1 overflow-auto p-6 space-y-6">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">Hi, {user?.name?.split(' ')[0] || 'there'}</h1>
+          <h1 className={styles.heading2}>Hi, {user?.name?.split(' ')[0] || 'there'}</h1>
           <p className="text-sm text-slate-400 mt-1">{new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', timeZone:'Asia/Kolkata' })}</p>
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function HistoryPage() {
               <StatCard label="Weekly trend" value={`${trend >= 0 ? '+' : ''}${formatDuration(Math.abs(trend))}`}
                 accent={trendColor} sub="vs oldest day this week" />
               
-              <div className="card-glass flex flex-col justify-between min-h-[140px]">
+              <div className={`${styles.card} flex flex-col justify-between min-h-[140px]`}>
                 <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-2">Latest state</p>
                 <div className="mt-auto items-start flex flex-col pb-2">
                   <span className="text-sm font-medium text-slate-500 mb-2">AI Behavioral Prediction</span>
@@ -116,7 +116,7 @@ export default function HistoryPage() {
 
             {/* Historical Bar Chart */}
             {barData.length > 0 && (
-              <div className="card-glass mt-6">
+              <div className={`${styles.card} mt-6`}>
                 <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-6">Historical Playtime</p>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={barData} barSize={36} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -150,12 +150,12 @@ export default function HistoryPage() {
 
       {loading && (
         <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className={styles.spinner} />
         </div>
       )}
 
       {!loading && sessions.length === 0 && (
-        <div className="card-glass text-center py-24 border border-dashed border-surface-variant/50">
+        <div className={`${styles.card} text-center py-24 border border-dashed border-surface-variant/50`}>
           <div className="w-16 h-16 bg-surface-variant/50 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
             📋
           </div>
@@ -175,7 +175,7 @@ export default function HistoryPage() {
           </div>
           <div className="space-y-4">
             {group.map(s => (
-              <div key={s._id} className="card-glass hover:border-surface-variant/80 transition-all transform hover:-translate-y-0.5">
+              <div key={s._id} className={`${styles.card} hover:border-surface-variant/80 transition-all transform hover:-translate-y-0.5`}>
                 <div className="flex items-start gap-5">
                   {/* Duration rect */}
                   <div className="w-16 h-16 rounded-2xl bg-surface-variant/40 flex flex-col items-center justify-center flex-shrink-0 shadow-inner shadow-white/5 border border-white/5">
