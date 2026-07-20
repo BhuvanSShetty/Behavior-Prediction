@@ -62,6 +62,49 @@ export class SessionRepository {
     ): Promise<ISessionDocument[]> {
         return Session.find(filter, projection).lean() as unknown as ISessionDocument[];
     }
+
+    async findAllWithFeedback(): Promise<ISessionDocument[]> {
+        return Session.find(
+            { 'feedback.provided': true },
+            'features feedback.actualState _id userId',
+        )
+            .lean() as unknown as ISessionDocument[];
+    }
+
+    async aggregateFeedbackStats(): Promise<{
+        total: number;
+        byState: Record<string, number>;
+        byUser: { userId: string; count: number }[];
+    }> {
+        const [byState, byUser] = await Promise.all([
+            Session.aggregate([
+                { $match: { 'feedback.provided': true } },
+                { $group: { _id: '$feedback.actualState', count: { $sum: 1 } } },
+            ]),
+            Session.aggregate([
+                { $match: { 'feedback.provided': true } },
+                { $group: { _id: '$userId', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 50 },
+            ]),
+        ]);
+
+        const stateMap: Record<string, number> = {};
+        let total = 0;
+        for (const row of byState) {
+            stateMap[row._id as string] = row.count as number;
+            total += row.count as number;
+        }
+
+        return {
+            total,
+            byState: stateMap,
+            byUser: byUser.map((r) => ({
+                userId: (r._id as string).toString(),
+                count: r.count as number,
+            })),
+        };
+    }
 }
 
 export const sessionRepository = new SessionRepository();

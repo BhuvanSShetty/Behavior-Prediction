@@ -1,0 +1,4 @@
+sessionId,avgSessionDuration,shortSessionRatio,reopenCount,interSessionGap,dailyTotalTime,sessionsPerDay,nightCount,trend,actualState
+test1,90.0,0.05,1.0,10.0,360.0,6.0,4.0,80.0,Addicted
+test2,15.0,0.85,8.0,20.0,60.0,10.0,2.0,15.0,Frustrated
+test3,30.0,0.15,1.0,180.0,60.0,2.0,0.0,5.0,Normal

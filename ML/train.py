@@ -6,6 +6,8 @@ from sklearn.metrics import (
     classification_report, accuracy_score, confusion_matrix,
     ConfusionMatrixDisplay, f1_score, balanced_accuracy_score
 )
+import matplotlib
+matplotlib.use('Agg')       # headless — must be before pyplot import
 import matplotlib.pyplot as plt
 import pickle
 import random
@@ -326,6 +328,8 @@ def train():
 
     print(f"\nModel saved → {MODEL_PATH} ✅")
     print("Run: uvicorn main:app --reload --port 8000")
+
+    return metadata
 
 
 if __name__ == "__main__":

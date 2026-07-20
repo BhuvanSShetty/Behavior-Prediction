@@ -9,7 +9,7 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
         name: { type: String, required: true },
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
-        role: { type: String, enum: ['child', 'parent'], default: 'child' },
+        role: { type: String, enum: ['child', 'parent', 'admin'], default: 'child' },
 
         // Child-specific
         ageGroup: {

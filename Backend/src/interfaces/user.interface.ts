@@ -1,6 +1,6 @@
 import type { Document, Types } from 'mongoose';
 
-export type UserRole = 'child' | 'parent';
+export type UserRole = 'child' | 'parent' | 'admin';
 export type AgeGroup = '10-12' | '13-15' | '16-18' | '19-24' | '24+';
 
 export interface IChildControls {

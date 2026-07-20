@@ -45,3 +45,16 @@ export const requireParent = (
     }
     next();
 };
+
+export const requireAdmin = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+): void => {
+    const authReq = req as IAuthenticatedRequest;
+    if (authReq.user.role !== 'admin') {
+        res.status(403).json({ message: 'Access restricted to admins only' });
+        return;
+    }
+    next();
+};
