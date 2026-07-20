@@ -3,6 +3,8 @@ import { api } from '../utils/api'
 import { StateBadge } from '../components/StateBadge'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { styles } from '../style'
 
 // Format decimal minutes to "X min Y sec" or just "X sec"
 const formatDuration = (minutes) => {
@@ -31,8 +33,6 @@ const istDayKey = (dateInput) => {
 export default function ChildDashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [sessions, setSessions] = useState([])
-  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalToday: 0,
     totalWeek: 0,
@@ -40,21 +40,18 @@ export default function ChildDashboardPage() {
     latestState: null
   })
 
-  useEffect(() => {
-    loadSessions()
-  }, [])
+  const { data: sessionResponse, isLoading: loading } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: api.getSessions
+  })
 
-  const loadSessions = async () => {
-    try {
-      const { data } = await api.getSessions()
-      setSessions(data)
-      calculateStats(data)
-    } catch (err) {
-      console.error('Failed to load sessions:', err)
-    } finally {
-      setLoading(false)
+  const sessions = sessionResponse?.data || []
+
+  useEffect(() => {
+    if (sessions.length >= 0) {
+      calculateStats(sessions)
     }
-  }
+  }, [sessions])
 
   const calculateStats = (data) => {
     const parts = new Intl.DateTimeFormat('en-IN', {
@@ -111,7 +108,7 @@ export default function ChildDashboardPage() {
       {/* Welcome header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-100">
+          <h1 className={styles.heading1}>
             Hey {user?.name?.split(' ')[0]} 👋
           </h1>
           <p className="text-sm text-slate-500 mt-1">
@@ -123,7 +120,7 @@ export default function ChildDashboardPage() {
       {/* Main stats grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Today's playtime */}
-        <div className="card-glass border-white/5 hover:border-white/10 transition-colors flex flex-col">
+        <div className={`${styles.card} border-white/5 hover:border-white/10 transition-colors flex flex-col`}>
           <div className="flex items-start justify-between mb-6">
             <div>
               <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Today's playtime</p>
@@ -141,7 +138,7 @@ export default function ChildDashboardPage() {
         </div>
 
         {/* Sessions today */}
-        <div className="card-glass border-white/5 hover:border-white/10 transition-colors flex flex-col">
+        <div className={`${styles.card} border-white/5 hover:border-white/10 transition-colors flex flex-col`}>
           <div className="flex items-start justify-between mb-6">
             <div>
               <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Sessions today</p>
@@ -162,7 +159,7 @@ export default function ChildDashboardPage() {
         </div>
 
         {/* Current status */}
-        <div className={`card-glass border-white/5 hover:border-white/10 transition-colors overflow-hidden relative flex flex-col`}>
+        <div className={`${styles.card} border-white/5 hover:border-white/10 transition-colors overflow-hidden relative flex flex-col`}>
           <div className={`absolute inset-0 bg-${risk.color}-500/5 mix-blend-overlay pointer-events-none`} />
           <div className="flex items-start justify-between mb-4 relative z-10">
             <div>
@@ -183,7 +180,7 @@ export default function ChildDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
         <button 
           onClick={() => navigate('/history')}
-          className="card-glass w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer"
+          className={`${styles.card} w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -201,7 +198,7 @@ export default function ChildDashboardPage() {
 
         <button 
           onClick={() => {}} 
-          className="card-glass w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer"
+          className={`${styles.card} w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -227,7 +224,7 @@ export default function ChildDashboardPage() {
               const startTime = new Date(s.raw?.start || s.createdAt)
               const endTime = new Date(s.raw?.end || new Date().toISOString())
               return (
-                <div key={s._id} className="card-glass p-5 flex items-center justify-between hover:border-surface-variant/50 transition-colors">
+                <div key={s._id} className={`${styles.card} flex items-center justify-between hover:border-surface-variant/50 transition-colors`}>
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-surface-variant/50 flex items-center justify-center text-sm font-mono text-brand-300 shadow-inner shadow-white/5">
                       {idx + 1}
@@ -255,12 +252,12 @@ export default function ChildDashboardPage() {
 
       {loading && (
         <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className={styles.spinner} />
         </div>
       )}
 
       {!loading && sessions.length === 0 && (
-        <div className="card text-center py-16 border-dashed border-slate-700">
+        <div className={`${styles.card} text-center py-16 border-dashed border-slate-700`}>
           <p className="text-5xl mb-4">🎮</p>
           <p className="text-slate-300 font-medium mb-1">No sessions yet</p>
           <p className="text-slate-600 text-sm">Start logging your gaming sessions to see your stats here!</p>

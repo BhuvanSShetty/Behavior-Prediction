@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { styles } from './style'
 
 import LoginPage          from './pages/LoginPage'
 import Layout             from './pages/Layout'
@@ -13,8 +16,8 @@ import ChildDashboardPage from './pages/ChildDashboardPage'
 const PrivateRoute = ({ children, role }) => {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950">
-      <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    <div className={styles.fullScreenLoader}>
+      <div className={styles.spinner} />
     </div>
   )
   if (!user) return <Navigate to="/login" replace />
@@ -22,9 +25,12 @@ const PrivateRoute = ({ children, role }) => {
   return children
 }
 
+const queryClient = new QueryClient()
+
 export default function App() {
   return (
-    <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -55,5 +61,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    <ReactQueryDevtools initialIsOpen={false} />
+  </QueryClientProvider>
   )
 }

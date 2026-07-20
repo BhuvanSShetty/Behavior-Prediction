@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
+import { styles } from '../style'
 
 export default function LoginPage() {
   const { login, register } = useAuth()
@@ -134,7 +135,7 @@ export default function LoginPage() {
                   className="overflow-hidden"
                 >
                   <label className="text-xs text-slate-400 mb-1.5 block">Full name</label>
-                  <input className="input" placeholder="Enter full name" value={form.name}
+                  <input className={styles.inputField} placeholder="Enter full name" value={form.name}
                     onChange={e => set('name', e.target.value)} required />
                 </motion.div>
               )}
@@ -142,13 +143,13 @@ export default function LoginPage() {
 
             <motion.div layout key="email">
               <label className="text-xs text-slate-400 mb-1.5 block">Email</label>
-              <input className="input" type="email" placeholder="you@gmail.com" value={form.email}
+              <input className={styles.inputField} type="email" placeholder="you@gmail.com" value={form.email}
                 onChange={e => set('email', e.target.value)} required />
             </motion.div>
 
             <motion.div layout key="password">
               <label className="text-xs text-slate-400 mb-1.5 block">Password</label>
-              <input className="input" type="password" placeholder="••••••••" value={form.password}
+              <input className={styles.inputField} type="password" placeholder="••••••••" value={form.password}
                 onChange={e => set('password', e.target.value)} required />
             </motion.div>
 
@@ -189,7 +190,7 @@ export default function LoginPage() {
                           className="overflow-hidden"
                         >
                           <label className="text-xs text-slate-400 mb-1.5 block">Age group</label>
-                          <select className="input bg-surface text-slate-200" value={form.ageGroup} onChange={e => set('ageGroup', e.target.value)}>
+                          <select className={`${styles.inputField} bg-surface text-slate-200`} value={form.ageGroup} onChange={e => set('ageGroup', e.target.value)}>
                             <option value="10-12" className="bg-surface text-slate-200">10–12 Years</option>
                             <option value="13-15" className="bg-surface text-slate-200">13–15 Years</option>
                             <option value="16-18" className="bg-surface text-slate-200">16–18 Years</option>
@@ -212,7 +213,7 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
-            <motion.button layout className="btn-primary w-full" disabled={loading}>
+            <motion.button layout className={styles.buttonPrimary} disabled={loading}>
               {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
             </motion.button>
           </form>
