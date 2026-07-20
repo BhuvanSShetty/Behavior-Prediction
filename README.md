@@ -143,6 +143,8 @@ Each gaming session triggers real-time feature computation:
 | Overfitting Gap | **0.94%** ✅ |
 | 5-Fold CV (f1_macro) | **98.58% ± 0.40%** |
 
+> **Note:** The current model training and performance metrics (above) are based on **mock / synthetic data** generated to simulate gaming behavior patterns. As real user feedback is collected via the app, the model will be retrained and adapt to real-world data.
+
 ### Prediction Pipeline Flow
 
 ```
