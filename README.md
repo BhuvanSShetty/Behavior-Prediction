@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/🎮-Behavior%20Prediction-blueviolet?style=for-the-badge&labelColor=1a1a2e" />
+  <img src="assets/logo.png" alt="Behavior Prediction Logo" width="180" />
 </p>
 
 <h1 align="center">Behavior Prediction — Gaming Behavior Analysis + ML Prediction</h1>
