@@ -543,5 +543,5 @@ docker run -p 5050:5050 --env-file .env behavior-backend
 ---
 
 <p align="center">
-  Built by <a href="https://github.com/BhuvanSShetty">Bhuvan S Shetty</a>
+  Built by <a href="https://github.com/BhuvanSShetty">Bhuvan S Shetty</a> &amp; <a href="https://github.com/Abhishekrana30">Abhishek Rana</a>
 </p>
