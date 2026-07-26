@@ -519,6 +519,7 @@ Visit **http://localhost:5173** in your browser.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_API_URL` | `http://localhost:5050` | Backend API base URL |
+| `VITE_WS_URL` | `ws://localhost:5050/ws` | Backend WebSocket URL for real-time alerts |
 
 ### ML Service (Environment)
 
@@ -526,10 +527,10 @@ Visit **http://localhost:5173** in your browser.
 |----------|---------|-------------|
 | `MODEL_PATH` | `model.pkl` | Path to trained model file |
 | `FEEDBACK_PATH` | `feedback_data.csv` | Path to feedback CSV |
-| `TRAIN_DATA_PATH` | `trained_data.csv` | Path to training data output |
+| `DATASET_PATH` | `dataset.csv` | Path to standard training dataset |
 | `FEEDBACK_WEIGHT` | `5.0` | Weight multiplier for feedback samples |
+| `MIN_FEEDBACK_ONLY_SAMPLES` | `800` | Min feedback samples before switching to feedback-only training |
 | `TUNE` | `0` | Set to `1` to run GridSearchCV |
-| `SMOTE` | `0` | Set to `1` to enable SMOTE oversampling |
 
 ---
 

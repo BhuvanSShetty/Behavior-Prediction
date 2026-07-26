@@ -20,13 +20,12 @@ warnings.filterwarnings("ignore")
 # train.py  (improved)
 #
 # Key fixes vs original:
-#   1. Balanced class generation  — each class ~33% of synthetic data
+#   1. Standard dataset storage   — uses dataset.csv (2400 balanced samples)
 #   2. class_weight="balanced"    — let sklearn compute weights automatically
 #   3. max_depth reduced 6 → 4    — less overfitting
 #   4. min_samples_leaf raised 5→10
 #   5. Evaluation uses f1_macro   — not accuracy (accuracy hides imbalance)
-#   6. Optional SMOTE             — install imbalanced-learn to enable
-#   7. Optional GridSearchCV      — set TUNE=True to run hyperparameter search
+#   6. Optional GridSearchCV      — set TUNE=True to run hyperparameter search
 #
 # Run: python train.py
 # With tuning: TUNE=1 python train.py
