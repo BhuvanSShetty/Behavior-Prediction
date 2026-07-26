@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Models and data generated locally
+model.pkl
+confusion_matrix.png
+experiment_results.json
+dataset.csv
+feedback_data.csv

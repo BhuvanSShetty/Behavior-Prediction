@@ -61,3 +61,47 @@ export const getFeedbackStats = async (_req: Request, res: Response): Promise<vo
         });
     }
 };
+
+export const compareModels = async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const comparison = await retrainService.getComparison();
+        res.json(comparison);
+    } catch (err) {
+        const error = err as Error;
+        res.status(500).json({
+            message: 'Could not fetch model comparison',
+            error: error.message,
+        });
+    }
+};
+
+export const getActiveModel = async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const active = predictionClient.getActiveModel();
+        res.json(active);
+    } catch (err) {
+        const error = err as Error;
+        res.status(500).json({
+            message: 'Could not get active model',
+            error: error.message,
+        });
+    }
+};
+
+export const switchActiveModel = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { modelName } = req.body as { modelName: 'RandomForest' | 'XGBoost' };
+        if (!modelName) {
+            res.status(400).json({ message: 'modelName is required (RandomForest or XGBoost)' });
+            return;
+        }
+        const active = predictionClient.setActiveModel(modelName);
+        res.json({ message: 'Active ML model updated successfully', ...active });
+    } catch (err) {
+        const error = err as Error;
+        res.status(400).json({
+            message: 'Could not switch active model',
+            error: error.message,
+        });
+    }
+};

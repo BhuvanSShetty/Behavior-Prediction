@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Generated ML & Research artifacts
+experiment_results.json
+comparison_*.png
+comparison_summary.json
+*.zip
+*.tar.gz
+
+# Env
+.env
+.env.local
+.DS_Store

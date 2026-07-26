@@ -7,21 +7,17 @@ import os
 import threading
 
 # ─────────────────────────────────────────────────────────────────────────────
-# main.py  (with retrain endpoints)
+# main.py for ML-XGBoost service (Independent XGBoost Model Service)
 #
 # Endpoints:
 #   GET  /health          — model info + metrics
 #   POST /predict         — predict behavior state from features
-#   POST /retrain         — accept feedback data, retrain model, hot-swap
+#   POST /retrain         — accept feedback data, retrain XGBoost model, hot-swap
 #   GET  /retrain/status  — current model metadata
-#
-# Usage:
-#   uvicorn main:app --reload --port 8000
 # ─────────────────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Gaming Behavior ML Service")
+app = FastAPI(title="Gaming Behavior ML Service (XGBoost)")
 
-# ── Model state (mutable — gets swapped on retrain) ──────────────────────────
 MODEL_PATH    = "model.pkl"
 FEEDBACK_PATH = "feedback_data.csv"
 
@@ -37,12 +33,11 @@ model    = saved["model"]
 features = saved["features"]      # authoritative feature order from training
 metadata = saved.get("metadata", {})
 
-print(f"Model loaded. Features: {features}")
+print(f"XGBoost Model loaded. Features: {features}")
 if metadata:
     print(f"Model metadata: {metadata}")
 
 
-# ── Addiction risk score ──────────────────────────────────────────────────────
 def compute_addiction_risk(proba: np.ndarray, classes: list) -> int:
     class_list = list(classes)
     if "Addicted" in class_list:
@@ -52,9 +47,6 @@ def compute_addiction_risk(proba: np.ndarray, classes: list) -> int:
     return 0
 
 
-# ── Feature engineering ───────────────────────────────────────────────────────
-# FIX 1: column names now match train.py (camelCase: intensityScore, frustrationScore)
-# The model's `features` list is the single source of truth for column order.
 def add_features_row(f) -> list:
     intensityScore = (
         f.avgSessionDuration * 0.4
@@ -79,24 +71,20 @@ def add_features_row(f) -> list:
         f.sessionsPerDay,
         f.nightCount,
         f.trend,
-        intensityScore,    # camelCase — matches train.py saved features
-        frustrationScore,  # camelCase — matches train.py saved features
+        intensityScore,
+        frustrationScore,
     ]
 
 
-# ── State normalizer ──────────────────────────────────────────────────────────
-# FIX 2: fallback is now "Unknown" instead of "Frustrated"
-# Silently mapping unexpected values to "Frustrated" hid bugs; "Unknown" surfaces them.
 def normalize_state(state: str) -> str:
     if not state:
         return "Unknown"
     canonical = str(state).strip().title()
     if canonical in {"Normal", "Frustrated", "Addicted"}:
         return canonical
-    return "Unknown"   # was "Frustrated" — changed to make errors visible
+    return "Unknown"
 
 
-# ── Request / Response schemas ────────────────────────────────────────────────
 class Features(BaseModel):
     avgSessionDuration: float
     shortSessionRatio:  float
@@ -138,13 +126,11 @@ class RetrainResponse(BaseModel):
     trainedAt:       str
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
-
 @app.get("/health")
 def health():
     return {
         "status":   "ML service running",
-        "model":    metadata.get("modelName", "RandomForest"),
+        "model":    metadata.get("modelName", "XGBoost"),
         "classes":  list(model.classes_),
         "features": features,
         "metadata": metadata,
@@ -156,7 +142,6 @@ def predict(body: PredictRequest):
     try:
         f = body.features
 
-        # Build DataFrame using the authoritative feature list from training
         X = pd.DataFrame([add_features_row(f)], columns=features)
 
         state      = normalize_state(model.predict(X)[0])
@@ -179,7 +164,7 @@ def predict(body: PredictRequest):
 def retrain(body: RetrainRequest):
     """
     Accept feedback data from the backend, save as CSV,
-    retrain the model, and hot-swap it in memory.
+    retrain the XGBoost model, and hot-swap it in memory.
     """
     global model, features, metadata
 
@@ -187,7 +172,6 @@ def retrain(body: RetrainRequest):
         raise HTTPException(status_code=409, detail="Retrain already in progress")
 
     try:
-        # 1. Save feedback rows to CSV (the format train.py expects)
         rows = [row.model_dump() for row in body.feedbackRows]
         if not rows:
             raise HTTPException(status_code=400, detail="No feedback rows provided")
@@ -196,18 +180,16 @@ def retrain(body: RetrainRequest):
         df.to_csv(FEEDBACK_PATH, index=False)
         print(f"Saved {len(rows)} feedback rows → {FEEDBACK_PATH}")
 
-        # 2. Run training (imports train.py and calls train())
         from train import train as run_training
         result_metadata = run_training()
 
-        # 3. Hot-swap: reload the new model into memory
         with open(MODEL_PATH, "rb") as f:
             saved = pickle.load(f)
 
         model    = saved["model"]
         features = saved["features"]
         metadata = saved.get("metadata", {})
-        print(f"Model hot-swapped. New metadata: {metadata}")
+        print(f"XGBoost Model hot-swapped. New metadata: {metadata}")
 
         return RetrainResponse(
             status="success",
@@ -228,7 +210,7 @@ def retrain(body: RetrainRequest):
 def retrain_status():
     """Return the current model metadata (last trained, metrics, etc.)."""
     return {
-        "modelName":       metadata.get("modelName", "RandomForest"),
+        "modelName":       metadata.get("modelName", "XGBoost"),
         "trainedAt":       metadata.get("trainedAt", "unknown"),
         "classes":         metadata.get("classes", []),
         "feedbackSamples": metadata.get("feedbackSamples", 0),

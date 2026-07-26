@@ -14,6 +14,7 @@ const envSchema = z.object({
 
     // ML Service
     ML_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+    ML_XGBOOST_URL: z.string().url().default('http://localhost:8001'),
 
     // Gmail SMTP
     GMAIL_USER: z.string().optional(),

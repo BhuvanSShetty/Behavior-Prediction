@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold, GridSearchCV
 from sklearn.metrics import (
     classification_report, accuracy_score, confusion_matrix,
     ConfusionMatrixDisplay, f1_score, balanced_accuracy_score,
     roc_auc_score, cohen_kappa_score
 )
+from xgboost import XGBClassifier
 import matplotlib
 matplotlib.use('Agg')       # headless — must be before pyplot import
 import matplotlib.pyplot as plt
@@ -19,18 +20,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# train.py  (improved)
+# train.py for ML-XGBoost service (independent XGBoost model)
 #
-# Key fixes vs original:
-#   1. Standard dataset storage   — uses dataset.csv (2400 balanced samples)
-#   2. class_weight="balanced"    — let sklearn compute weights automatically
-#   3. max_depth reduced 6 → 4    — less overfitting
-#   4. min_samples_leaf raised 5→10
-#   5. Evaluation uses f1_macro   — not accuracy (accuracy hides imbalance)
-#   6. Optional GridSearchCV      — set TUNE=True to run hyperparameter search
-#
-# Run: python train.py
-# With tuning: TUNE=1 python train.py
+# Identical data generation and seed (42) as ML/train.py for fair comparison.
 # ─────────────────────────────────────────────────────────────────────────────
 
 np.random.seed(42)
@@ -43,7 +35,7 @@ FEEDBACK_PATH      = os.getenv("FEEDBACK_PATH",               "feedback_data.csv
 DATASET_PATH       = os.getenv("DATASET_PATH",                "dataset.csv")
 FEEDBACK_WEIGHT    = float(os.getenv("FEEDBACK_WEIGHT",       "5.0"))
 MIN_FEEDBACK_ONLY  = int(os.getenv("MIN_FEEDBACK_ONLY_SAMPLES","800"))
-TUNE               = os.getenv("TUNE", "0") == "1"   # set TUNE=1 to run GridSearchCV
+TUNE               = os.getenv("TUNE", "0") == "1"
 
 
 BASE_FEATURES = [
@@ -58,6 +50,51 @@ BASE_FEATURES = [
 ]
 ALL_FEATURES = BASE_FEATURES + ["intensityScore", "frustrationScore"]
 VALID_STATES = {"Normal", "Frustrated", "Addicted"}
+
+
+# ── Wrapper for XGBClassifier to make label handling transparent ─────────────
+class XGBoostWrapper(BaseEstimator, ClassifierMixin):
+    def __init__(self, n_estimators=200, max_depth=4, learning_rate=0.08, subsample=0.85, colsample_bytree=0.8, min_child_weight=5, reg_alpha=0.1, reg_lambda=1.0, random_state=42):
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+        self.learning_rate = learning_rate
+        self.subsample = subsample
+        self.colsample_bytree = colsample_bytree
+        self.min_child_weight = min_child_weight
+        self.reg_alpha = reg_alpha
+        self.reg_lambda = reg_lambda
+        self.random_state = random_state
+        self.classes_ = np.array(["Addicted", "Frustrated", "Normal"])
+
+    def fit(self, X, y, sample_weight=None):
+        self.classes_ = np.unique(y)
+        label_map = {c: i for i, c in enumerate(self.classes_)}
+        y_num = np.array([label_map[label] for label in y])
+        self.model_ = XGBClassifier(
+            n_estimators=self.n_estimators,
+            max_depth=self.max_depth,
+            learning_rate=self.learning_rate,
+            subsample=self.subsample,
+            colsample_bytree=self.colsample_bytree,
+            min_child_weight=self.min_child_weight,
+            reg_alpha=self.reg_alpha,
+            reg_lambda=self.reg_lambda,
+            random_state=self.random_state,
+            eval_metric="mlogloss"
+        )
+        self.model_.fit(X, y_num, sample_weight=sample_weight)
+        return self
+
+    def predict(self, X):
+        y_pred_num = self.model_.predict(X)
+        return np.array([self.classes_[idx] for idx in y_pred_num])
+
+    def predict_proba(self, X):
+        return self.model_.predict_proba(X)
+
+    @property
+    def feature_importances_(self):
+        return self.model_.feature_importances_
 
 
 # ── Feature engineering — must match main.py exactly ─────────────────────────
@@ -79,9 +116,7 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ── Balanced synthetic data generator ────────────────────────────────────────
-# FIX: original generator produced ~75% Addicted. This version explicitly
-# generates N//3 rows per class so all three classes are equally represented.
+# ── Balanced synthetic data generator (identical to ML/train.py) ──────────────
 def generate_data() -> pd.DataFrame:
     n_per_class = N // 3
     rows = []
@@ -158,26 +193,6 @@ def load_feedback(path: str) -> pd.DataFrame:
     return df[BASE_FEATURES + ["label", "source", "weight"]]
 
 
-
-
-# ── Optional hyperparameter tuning ───────────────────────────────────────────
-def tune_hyperparams(X_train, y_train, w_train):
-    print("\nRunning GridSearchCV (this takes a few minutes)...")
-    param_grid = {
-        "n_estimators":    [100, 200, 300],
-        "max_depth":       [3, 4, 5],
-        "min_samples_leaf":[5, 10, 15],
-        "max_features":    ["sqrt", "log2"],
-    }
-    rf = RandomForestClassifier(class_weight="balanced", random_state=42)
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    gs = GridSearchCV(rf, param_grid, cv=cv, scoring="f1_macro", n_jobs=-1, verbose=1)
-    gs.fit(X_train, y_train, sample_weight=w_train)
-    print(f"Best params : {gs.best_params_}")
-    print(f"Best F1 macro (CV): {gs.best_score_:.4f}")
-    return gs.best_estimator_
-
-
 # ── Main training function ────────────────────────────────────────────────────
 def train():
     if os.path.exists(DATASET_PATH):
@@ -223,21 +238,19 @@ def train():
         X, y, w, test_size=0.2, random_state=42, stratify=stratify
     )
 
-    # Train or tune
-    if TUNE:
-        model = tune_hyperparams(X_train, y_train, w_train)
-    else:
-        print("Training Random Forest...")
-        model = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=4,            # FIX: was 6 — reduced to cut overfitting
-            min_samples_split=10,
-            min_samples_leaf=10,    # FIX: was 5 — more conservative leaves
-            max_features="sqrt",
-            class_weight="balanced",# FIX: was manual weights — auto-balanced is better
-            random_state=42,
-        )
-        model.fit(X_train, y_train, sample_weight=w_train)
+    print("Training XGBoost Classifier...")
+    model = XGBoostWrapper(
+        n_estimators=200,
+        max_depth=4,
+        learning_rate=0.08,
+        subsample=0.85,
+        colsample_bytree=0.8,
+        min_child_weight=5,
+        reg_alpha=0.1,
+        reg_lambda=1.0,
+        random_state=42,
+    )
+    model.fit(X_train, y_train, sample_weight=w_train)
 
     # ── Evaluation ──────────────────────────────────────────────────────────
     y_pred    = model.predict(X_test)
@@ -254,9 +267,9 @@ def train():
     print("=== ACCURACY & RESEARCH METRICS ===")
     print(f"  Train accuracy     : {train_acc:.4f}")
     print(f"  Test  accuracy     : {test_acc:.4f}")
-    print(f"  Balanced accuracy  : {bal_acc:.4f}  ← key metric (was 0.53, target ≥0.75)")
+    print(f"  Balanced accuracy  : {bal_acc:.4f}  ← key metric")
     print(f"  Overfitting gap    : {gap:.4f}", "✅" if gap < 0.08 else "⚠️  still overfitting")
-    print(f"  F1 macro           : {f1_mac:.4f}  ← key metric (was 0.53, target ≥0.70)")
+    print(f"  F1 macro           : {f1_mac:.4f}  ← key metric")
     print(f"  F1 weighted        : {f1_w:.4f}")
     print(f"  ROC-AUC (ovr macro): {roc_auc:.4f}")
     print(f"  Cohen's Kappa      : {kappa:.4f}")
@@ -283,7 +296,7 @@ def train():
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_)
     fig, ax = plt.subplots(figsize=(7, 6))
     disp.plot(ax=ax, colorbar=False, cmap="Blues")
-    ax.set_title(f"Confusion Matrix  |  F1 macro={f1_mac:.3f}  bal_acc={bal_acc:.3f}")
+    ax.set_title(f"Confusion Matrix (XGBoost)  |  F1 macro={f1_mac:.3f}  bal_acc={bal_acc:.3f}")
     plt.tight_layout()
     plt.savefig("confusion_matrix.png", dpi=150)
     plt.close()
@@ -291,7 +304,7 @@ def train():
 
     # ── Save model ──────────────────────────────────────────────────────────
     metadata = {
-        "modelName":        "RandomForest",
+        "modelName":        "XGBoost",
         "trainedAt":        datetime.now(timezone.utc).isoformat(),
         "classes":          list(model.classes_),
         "feedbackSamples":  int(len(feedback)),
@@ -316,7 +329,7 @@ def train():
 
     # Export experiment_results.json for research paper comparison
     experiment_results = {
-        "modelName": "RandomForest",
+        "modelName": "XGBoost",
         "trainedAt": metadata["trainedAt"],
         "classes": metadata["classes"],
         "metrics": metadata["metrics"],
