@@ -34,8 +34,8 @@ export const useWebSocket = (enabled = true) => {
     const state = ws.current?.readyState
     if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) return
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    ws.current = new WebSocket(`${protocol}://${window.location.host}/ws`)
+    const wsUrl = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
+    ws.current = new WebSocket(wsUrl)
 
     ws.current.onopen = () => {
       setConnected(true)

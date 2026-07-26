@@ -1,0 +1,47 @@
+services:
+  ml-service:
+    build:
+      context: ./ML
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - PORT=8000
+
+  backend:
+    build:
+      context: ./Backend
+    ports:
+      - "5050:5050"
+    restart: unless-stopped
+    environment:
+      - PORT=5050
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - ML_SERVICE_URL=http://ml-service:8000
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
+    depends_on:
+      - ml-service
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8088:8080"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - uptime-kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "3001:3001"
+
+volumes:
+  uptime-kuma-data:

@@ -30,10 +30,8 @@ export const logger = pino({
 
 const app = express();
 
-// Trust proxy (for rate-limiter behind reverse proxy)
-if (env.NODE_ENV === 'production') {
-    app.set('trust proxy', 1);
-}
+// Trust proxy (for rate-limiter behind reverse proxy like Nginx)
+app.set('trust proxy', 1);
 
 // Request ID
 app.use((_req: Request, res: Response, next: NextFunction) => {
