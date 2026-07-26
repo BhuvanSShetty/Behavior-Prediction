@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PUBLIC_IP="13.201.22.56"
+PUBLIC_IP="${EC2_IP:-<YOUR_EC2_IP>}"
 KEY="~/.ssh/behavior-prediction-key.pem"
 REMOTE_USER="ubuntu"
 APP_DIR="~/app"
