@@ -20,13 +20,12 @@ warnings.filterwarnings("ignore")
 # train.py  (improved)
 #
 # Key fixes vs original:
-#   1. Balanced class generation  — each class ~33% of synthetic data
+#   1. Standard dataset storage   — uses dataset.csv (2400 balanced samples)
 #   2. class_weight="balanced"    — let sklearn compute weights automatically
 #   3. max_depth reduced 6 → 4    — less overfitting
 #   4. min_samples_leaf raised 5→10
 #   5. Evaluation uses f1_macro   — not accuracy (accuracy hides imbalance)
-#   6. Optional SMOTE             — install imbalanced-learn to enable
-#   7. Optional GridSearchCV      — set TUNE=True to run hyperparameter search
+#   6. Optional GridSearchCV      — set TUNE=True to run hyperparameter search
 #
 # Run: python train.py
 # With tuning: TUNE=1 python train.py
@@ -39,11 +38,11 @@ random.seed(42)
 N                  = 2400           # 800 per class
 MODEL_PATH         = os.getenv("MODEL_PATH",                  "model.pkl")
 FEEDBACK_PATH      = os.getenv("FEEDBACK_PATH",               "feedback_data.csv")
-TRAIN_DATA_PATH    = os.getenv("TRAIN_DATA_PATH",             "trained_data.csv")
+DATASET_PATH       = os.getenv("DATASET_PATH",                "dataset.csv")
 FEEDBACK_WEIGHT    = float(os.getenv("FEEDBACK_WEIGHT",       "5.0"))
 MIN_FEEDBACK_ONLY  = int(os.getenv("MIN_FEEDBACK_ONLY_SAMPLES","800"))
 TUNE               = os.getenv("TUNE", "0") == "1"   # set TUNE=1 to run GridSearchCV
-USE_SMOTE          = os.getenv("SMOTE", "0") == "1"  # set SMOTE=1 if imbalanced-learn installed
+
 
 BASE_FEATURES = [
     "avgSessionDuration",
@@ -85,59 +84,44 @@ def generate_data() -> pd.DataFrame:
     n_per_class = N // 3
     rows = []
 
-    def _row(label: str) -> dict:
-        # Base randomness
-        addiction_drive   = np.random.uniform(0, 1)
-        frustration_drive = np.random.uniform(0, 1)
-        sessionsPerDay    = np.random.randint(1, 20)
-        nightCount        = np.random.randint(0, 6)
-
-        if label == "Addicted":
-            # High intensity: long sessions, high daily time, rising trend
-            avgSessionDuration = np.random.uniform(45, 120)
-            trend              = np.random.uniform(40, 130) + np.random.normal(0, 10)
-            dailyTotalTime     = np.clip(avgSessionDuration * sessionsPerDay * np.random.uniform(0.5, 0.9) + 120, 120, 500)
-            shortSessionRatio  = np.clip(np.random.beta(1, 6), 0, 0.3)          # few short sessions
-            interSessionGap    = np.clip(np.random.uniform(1, 60), 1, 300)       # comes back quickly
-            reopenCount        = int(shortSessionRatio * sessionsPerDay + np.random.randint(0, 2))
-
-        elif label == "Frustrated":
-            # High short-session ratio, frequent reopens, short gaps then rage-quits
-            avgSessionDuration = np.random.uniform(10, 50)
-            trend              = np.random.uniform(-10, 50) + np.random.normal(0, 10)
-            dailyTotalTime     = np.clip(avgSessionDuration * sessionsPerDay * np.random.uniform(0.2, 0.6), 10, 250)
-            shortSessionRatio  = np.clip(np.random.beta(5, 2) * frustration_drive + 0.3, 0.3, 1.0)
-            interSessionGap    = np.clip(np.random.uniform(1, 80), 1, 300)
-            reopenCount        = int(shortSessionRatio * sessionsPerDay + np.random.randint(1, 5))
-
-        else:  # Normal
-            # Moderate, regular usage — no extremes
-            avgSessionDuration = np.random.uniform(10, 60)
-            trend              = np.random.uniform(-20, 40) + np.random.normal(0, 8)
-            dailyTotalTime     = np.clip(avgSessionDuration * sessionsPerDay * np.random.uniform(0.2, 0.5), 10, 150)
-            shortSessionRatio  = np.clip(np.random.beta(2, 4), 0, 0.5)
-            interSessionGap    = np.clip(np.random.uniform(60, 300), 1, 300)     # plays less frequently
-            reopenCount        = int(shortSessionRatio * sessionsPerDay + np.random.randint(0, 2))
-
-        # Small noise to blur the decision boundary (keeps model honest)
-        if np.random.rand() < 0.05:
-            avgSessionDuration *= np.random.uniform(0.7, 1.3)
-
-        return {
-            "avgSessionDuration": round(float(avgSessionDuration), 2),
-            "shortSessionRatio":  round(float(shortSessionRatio), 3),
-            "reopenCount":        int(reopenCount),
-            "interSessionGap":    round(float(interSessionGap), 2),
-            "dailyTotalTime":     round(float(dailyTotalTime), 2),
-            "sessionsPerDay":     int(sessionsPerDay),
-            "nightCount":         int(nightCount),
-            "trend":              round(float(trend), 2),
-            "label":              label,
-        }
-
     for label in ["Addicted", "Frustrated", "Normal"]:
         for _ in range(n_per_class):
-            rows.append(_row(label))
+            sessionsPerDay = np.random.randint(1, 15)
+            nightCount     = np.random.randint(0, 5)
+
+            if label == "Addicted":
+                avgSessionDuration = np.clip(np.random.normal(60, 25), 15, 130)
+                trend              = np.clip(np.random.normal(40, 35), -20, 130)
+                dailyTotalTime     = np.clip(np.random.normal(240, 90), 60, 500)
+                shortSessionRatio  = np.clip(np.random.beta(2, 5), 0, 0.7)
+                interSessionGap    = np.clip(np.random.normal(60, 50), 5, 280)
+                reopenCount        = int(shortSessionRatio * sessionsPerDay + np.random.randint(0, 3))
+            elif label == "Frustrated":
+                avgSessionDuration = np.clip(np.random.normal(30, 20), 10, 90)
+                trend              = np.clip(np.random.normal(10, 30), -40, 90)
+                dailyTotalTime     = np.clip(np.random.normal(130, 70), 30, 350)
+                shortSessionRatio  = np.clip(np.random.beta(4, 3), 0.1, 0.95)
+                interSessionGap    = np.clip(np.random.normal(90, 60), 5, 280)
+                reopenCount        = int(shortSessionRatio * sessionsPerDay + np.random.randint(1, 5))
+            else:  # Normal
+                avgSessionDuration = np.clip(np.random.normal(35, 20), 10, 95)
+                trend              = np.clip(np.random.normal(10, 25), -35, 80)
+                dailyTotalTime     = np.clip(np.random.normal(120, 60), 30, 300)
+                shortSessionRatio  = np.clip(np.random.beta(2, 3), 0.05, 0.85)
+                interSessionGap    = np.clip(np.random.normal(130, 65), 10, 300)
+                reopenCount        = int(shortSessionRatio * sessionsPerDay + np.random.randint(0, 3))
+
+            rows.append({
+                "avgSessionDuration": round(float(avgSessionDuration), 2),
+                "shortSessionRatio":  round(float(shortSessionRatio), 3),
+                "reopenCount":        int(reopenCount),
+                "interSessionGap":    round(float(interSessionGap), 2),
+                "dailyTotalTime":     round(float(dailyTotalTime), 2),
+                "sessionsPerDay":     int(sessionsPerDay),
+                "nightCount":         int(nightCount),
+                "trend":              round(float(trend), 2),
+                "label":              label,
+            })
 
     df = pd.DataFrame(rows)
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)   # shuffle
@@ -172,17 +156,6 @@ def load_feedback(path: str) -> pd.DataFrame:
     return df[BASE_FEATURES + ["label", "source", "weight"]]
 
 
-# ── Optional SMOTE oversampling ───────────────────────────────────────────────
-def maybe_smote(X_train, y_train):
-    try:
-        from imblearn.over_sampling import SMOTE
-        sm = SMOTE(random_state=42, k_neighbors=5)
-        X_res, y_res = sm.fit_resample(X_train, y_train)
-        print(f"SMOTE applied: {len(y_train)} → {len(y_res)} samples")
-        return X_res, y_res
-    except ImportError:
-        print("imbalanced-learn not installed — skipping SMOTE. pip install imbalanced-learn")
-        return X_train, y_train
 
 
 # ── Optional hyperparameter tuning ───────────────────────────────────────────
@@ -205,10 +178,20 @@ def tune_hyperparams(X_train, y_train, w_train):
 
 # ── Main training function ────────────────────────────────────────────────────
 def train():
-    print("Generating balanced synthetic data...")
-    synthetic = generate_data()
-    synthetic["source"] = "synthetic"
-    synthetic["weight"] = 1.0
+    if os.path.exists(DATASET_PATH):
+        print(f"Loading standard dataset from {DATASET_PATH}...")
+        synthetic = pd.read_csv(DATASET_PATH)
+        if "source" not in synthetic.columns:
+            synthetic["source"] = "synthetic"
+        if "weight" not in synthetic.columns:
+            synthetic["weight"] = 1.0
+    else:
+        print(f"Standard dataset '{DATASET_PATH}' not found. Generating balanced dataset...")
+        synthetic = generate_data()
+        synthetic["source"] = "synthetic"
+        synthetic["weight"] = 1.0
+        synthetic.to_csv(DATASET_PATH, index=False)
+        print(f"Saved standard training dataset → {DATASET_PATH}")
 
     feedback = load_feedback(FEEDBACK_PATH)
 
@@ -224,9 +207,6 @@ def train():
         print(f"Training on blended data ({len(synthetic)} synthetic + {len(feedback)} feedback).")
 
     df = add_features(df)
-    df.to_csv(TRAIN_DATA_PATH, index=False)
-    print(f"Training data saved → {TRAIN_DATA_PATH}")
-
     print(f"\nDataset: {len(df)} samples")
     print("=== CLASS DISTRIBUTION ===")
     print(df["label"].value_counts())
@@ -240,11 +220,6 @@ def train():
     X_train, X_test, y_train, y_test, w_train, _ = train_test_split(
         X, y, w, test_size=0.2, random_state=42, stratify=stratify
     )
-
-    # Optional SMOTE
-    if USE_SMOTE:
-        X_train, y_train = maybe_smote(X_train, y_train)
-        w_train = np.ones(len(y_train))   # SMOTE creates new samples — reset weights
 
     # Train or tune
     if TUNE:

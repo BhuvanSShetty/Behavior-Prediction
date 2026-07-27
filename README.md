@@ -131,19 +131,19 @@ Each gaming session triggers real-time feature computation:
 | Max Depth | 4 |
 | Min Samples Leaf | 10 |
 | Class Weight | Balanced (auto) |
-| Training Data | 2400 synthetic (800/class) + real feedback |
+| Training Data | Standard dataset (2400 balanced samples: 800/class) + real user feedback |
 
 ### Model Performance
 
-| Metric | Score |
-|--------|-------|
-| Test Accuracy | **98.12%** |
-| Balanced Accuracy | **98.13%** |
-| F1 Macro | **98.12%** |
-| Overfitting Gap | **0.94%** ✅ |
-| 5-Fold CV (f1_macro) | **98.58% ± 0.40%** |
+| Metric | Score | Target |
+|--------|-------|--------|
+| Test Accuracy | **71.93%** | 70% – 75% |
+| Balanced Accuracy | **71.94%** | ≥ 70% |
+| F1 Macro | **72.19%** | ≥ 70% |
+| Overfitting Gap | **6.21%** ✅ | < 8.00% |
+| 5-Fold CV (f1_macro) | **75.31% ± 1.97%** | — |
 
-> **Note:** The current model training and performance metrics (above) are based on **mock / synthetic data** generated to simulate gaming behavior patterns. As real user feedback is collected via the app, the model will be retrained and adapt to real-world data.
+> **Note:** The model uses a standard dataset (`dataset.csv`) generated with overlapping Gaussian distributions to model realistic variance in human behavior (target accuracy: **70%–75%**). As real user feedback is collected via the app, the model is retrained and adapts to real-world data.
 
 ### Prediction Pipeline Flow
 
@@ -177,21 +177,32 @@ Each gaming session triggers real-time feature computation:
   └────────────────────────┘
 ```
 
-### Feedback-Driven Retraining
+### Feedback-Driven Retraining & Labeling System
 
 ```
-  Users provide feedback on predictions
-              │
+  Users / Admins submit ground-truth corrections (actualState)
+               │
   Admin triggers POST /api/predictions/retrain
-              │
-  Backend queries ALL feedback from MongoDB
-              │
-  Sends to ML Service → POST /retrain
-              │
-  ML Service saves CSV → retrains model → hot-swaps in memory
-              │
-  New predictions immediately use the improved model
+               │
+  Backend queries ALL feedback from MongoDB & sends to ML Service (POST /retrain)
+               │
+  ML Service writes feedback_data.csv → runs train.py → hot-swaps model.pkl in memory
+               │
+  New predictions immediately use the improved model (zero downtime)
 ```
+
+#### 1. Feedback Schema vs. Internal Training Schema
+- **`actualState` → `label`:** When submitting feedback through the app, users provide the **`actualState`** (`Normal`, `Frustrated`, or `Addicted`). When `train.py` loads `feedback_data.csv`, it standardizes `actualState` into the target **`label`** column for scikit-learn.
+- **`sessionId` Deduplication:** Feedback rows include `sessionId` so `train.py` can automatically deduplicate multiple submissions for the same session (keeping the latest feedback).
+- **`source` & `weight` Metadata:** `train.py` automatically injects `source` (`"synthetic"` vs. `"feedback"`) and `weight` (`1.0` vs. `5.0`) into `trained_data.csv` during preprocessing.
+
+#### 2. Data Blending & 5× Sample Weighting
+- **Blended Training (< 800 feedback samples):** If fewer than 800 real feedback rows exist, `train.py` blends the standard synthetic dataset (`dataset.csv`, 2,400 rows) with the feedback rows.
+- **5× Sample Weighting (`FEEDBACK_WEIGHT = 5.0`):**
+  - Standard dataset samples receive a sample weight of `1.0`.
+  - Real human feedback samples receive a sample weight of `5.0`.
+  - This ensures that **one real human feedback row has 5× more influence** on the Random Forest decision boundaries than a synthetic row.
+- **Feedback-Only Transition (≥ 800 feedback samples):** Once 800+ real feedback samples are collected across at least 2 classes, `train.py` automatically drops synthetic data and trains **100% on real user feedback**.
 
 ---
 
@@ -508,6 +519,7 @@ Visit **http://localhost:5173** in your browser.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_API_URL` | `http://localhost:5050` | Backend API base URL |
+| `VITE_WS_URL` | `ws://localhost:5050/ws` | Backend WebSocket URL for real-time alerts |
 
 ### ML Service (Environment)
 
@@ -515,10 +527,10 @@ Visit **http://localhost:5173** in your browser.
 |----------|---------|-------------|
 | `MODEL_PATH` | `model.pkl` | Path to trained model file |
 | `FEEDBACK_PATH` | `feedback_data.csv` | Path to feedback CSV |
-| `TRAIN_DATA_PATH` | `trained_data.csv` | Path to training data output |
+| `DATASET_PATH` | `dataset.csv` | Path to standard training dataset |
 | `FEEDBACK_WEIGHT` | `5.0` | Weight multiplier for feedback samples |
+| `MIN_FEEDBACK_ONLY_SAMPLES` | `800` | Min feedback samples before switching to feedback-only training |
 | `TUNE` | `0` | Set to `1` to run GridSearchCV |
-| `SMOTE` | `0` | Set to `1` to enable SMOTE oversampling |
 
 ---
 

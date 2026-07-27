@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || ''
+
 // Ensure auth header is always present after page refresh.
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
