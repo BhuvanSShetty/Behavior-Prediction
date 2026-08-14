@@ -11,6 +11,17 @@ export class UserRepository {
         return User.findById(id);
     }
 
+    async findChildByEmail(email: string): Promise<IUserDocument | null> {
+        return User.findOne({ email: email.toLowerCase().trim(), role: 'child' });
+    }
+
+    async findChildrenByName(name: string): Promise<IUserDocument[]> {
+        return User.find({
+            name: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+            role: 'child',
+        });
+    }
+
     async findByIdExcludePassword(id: string): Promise<IUserDocument | null> {
         return User.findById(id).select('-password') as unknown as IUserDocument | null;
     }

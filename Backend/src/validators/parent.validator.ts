@@ -12,7 +12,7 @@ export const updateControlsSchema = {
 
 export const linkChildSchema = {
     body: z.object({
-        childId: z.string().min(1, 'childId is required'),
+        identifier: z.string().min(1, "Child's name or email is required"),
     }),
 };
 
