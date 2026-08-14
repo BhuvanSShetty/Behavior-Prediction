@@ -142,17 +142,36 @@ export class ParentService {
 
     async linkChild(
         parentId: string,
-        childId: string,
+        identifier: string,
     ): Promise<{ message: string; childId: string }> {
-        const child = await userRepository.findById(childId);
-        if (!child || child.role !== 'child') {
-            throw new NotFoundError('Child not found');
+        const trimmed = identifier.trim();
+        const isEmail = trimmed.includes('@');
+
+        let child: IUserDocument | null;
+        if (isEmail) {
+            child = await userRepository.findChildByEmail(trimmed);
+            if (!child) {
+                throw new NotFoundError('Child not found');
+            }
+        } else {
+            const matches = await userRepository.findChildrenByName(trimmed);
+            if (matches.length === 0) {
+                throw new NotFoundError('Child not found');
+            }
+            if (matches.length > 1) {
+                throw new ConflictError(
+                    'Multiple children found with that name. Please use email instead.',
+                );
+            }
+            child = matches[0] as IUserDocument;
         }
 
         const parent = await userRepository.findById(parentId);
         if (!parent) {
             throw new NotFoundError('Parent not found');
         }
+
+        const childId = child._id.toString();
 
         if (parent.children.map(String).includes(childId)) {
             throw new ConflictError('Already linked');

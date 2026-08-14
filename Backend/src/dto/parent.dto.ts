@@ -6,7 +6,7 @@ export interface UpdateControlsRequest {
 }
 
 export interface LinkChildRequest {
-    childId: string;
+    identifier: string;
 }
 
 export interface ParentDashboardResponse {

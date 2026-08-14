@@ -6,7 +6,7 @@ type UserModel = Model<IUser, object, IUserMethods>;
 
 const userSchema = new Schema<IUser, UserModel, IUserMethods>(
     {
-        name: { type: String, required: true },
+        name: { type: String, required: true, index: true },
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
         role: { type: String, enum: ['child', 'parent', 'admin'], default: 'child' },

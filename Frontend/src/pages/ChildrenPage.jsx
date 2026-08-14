@@ -5,7 +5,7 @@ import { styles } from '../style'
 
 export default function ChildrenPage() {
   const queryClient = useQueryClient()
-  const [childId,  setChildId]  = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [limit,    setLimit]    = useState(120)
   const [selected, setSelected] = useState(null)
   const [msg,      setMsg]      = useState('')
@@ -23,7 +23,7 @@ export default function ChildrenPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] })
       setMsg('Child linked successfully ✓')
-      setChildId('')
+      setIdentifier('')
     },
     onError: (e) => {
       setError(e.response?.data?.message || 'Failed to link')
@@ -43,8 +43,8 @@ export default function ChildrenPage() {
 
   const link = () => {
     setMsg(''); setError('')
-    if (!childId.trim()) return
-    linkMutation.mutate(childId.trim())
+    if (!identifier.trim()) return
+    linkMutation.mutate(identifier.trim())
   }
 
   const saveControls = (id) => {
@@ -66,8 +66,8 @@ export default function ChildrenPage() {
         <div className={`${styles.card} w-full`}>
           <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-5">Link a new account</p>
           <div className="flex flex-col sm:flex-row gap-4 max-w-xl">
-            <input className={`${styles.inputField} flex-1`} placeholder="Enter Child's User ID" value={childId}
-              onChange={e => setChildId(e.target.value)} />
+            <input className={`${styles.inputField} flex-1`} placeholder="Enter child's name or email" value={identifier}
+              onChange={e => setIdentifier(e.target.value)} />
             <button className={`${styles.buttonPrimary} sm:w-auto px-6`} onClick={link} disabled={linkMutation.isPending}>
               {linkMutation.isPending ? 'Linking...' : 'Link Child'}
             </button>
@@ -75,7 +75,7 @@ export default function ChildrenPage() {
           {msg   && <p className="text-emerald-400 text-sm font-medium mt-4 bg-emerald-950/30 py-2 px-3 rounded-xl border border-emerald-500/20 inline-block">{msg}</p>}
           {error && <p className="text-red-400 text-sm font-medium mt-4 bg-red-950/30 py-2 px-3 rounded-xl border border-red-500/20 inline-block">{error}</p>}
           <p className="text-xs text-slate-500 mt-4 leading-relaxed max-w-xl">
-            Ask the child to share their unique User ID found in their profile menu, or use their registered email address to pair their device.
+            Enter the child's registered email address (recommended for an exact match) or their full name. If multiple children share the same name, use their email instead.
           </p>
         </div>
 

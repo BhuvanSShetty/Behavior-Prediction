@@ -68,10 +68,10 @@ export const updateControls = async (req: Request, res: Response): Promise<void>
 export const linkChild = async (req: Request, res: Response): Promise<void> => {
     try {
         const authReq = req as IAuthenticatedRequest;
-        const { childId } = req.body as { childId: string };
+        const { identifier } = req.body as { identifier: string };
         const result = await parentService.linkChild(
             authReq.user._id.toString(),
-            childId,
+            identifier,
         );
         res.json(result);
     } catch (err) {
