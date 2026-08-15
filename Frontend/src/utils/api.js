@@ -25,7 +25,7 @@ export const api = {
 
   // Parent
   getChildren:   ()         => axios.get('/api/parent/children'),
-  linkChild:     (childId)  => axios.post('/api/parent/link', { childId }),
+  linkChild:     (identifier) => axios.post('/api/parent/link', { identifier }),
   getDashboard:  (childId)  => axios.get(`/api/parent/dashboard/${childId}`),
   getDashboardWeekly: (childId) => axios.get(`/api/parent/dashboard/${childId}/weekly`),
   updateControls:(childId, data) => axios.put(`/api/parent/controls/${childId}`, data),
