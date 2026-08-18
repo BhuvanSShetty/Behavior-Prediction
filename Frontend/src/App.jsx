@@ -21,7 +21,7 @@ const PrivateRoute = ({ children, role }) => {
     </div>
   )
   if (!user) return <Navigate to="/login" replace />
-  if (role && user.role !== role) return <Navigate to={user.role === 'parent' ? '/dashboard' : '/history'} replace />
+  if (role && user.role !== role) return <Navigate to={user.role === 'parent' ? '/children' : '/history'} replace />
   return children
 }
 
@@ -41,8 +41,11 @@ export default function App() {
               <Layout />
             </PrivateRoute>
           }>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route index element={<Navigate to="/children" replace />} />
+            
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="dashboard/:childId" element={<DashboardPage />} />
+            
             <Route path="children"  element={<ChildrenPage />} />
             <Route path="alerts"    element={<AlertsPage />} />
           </Route>
