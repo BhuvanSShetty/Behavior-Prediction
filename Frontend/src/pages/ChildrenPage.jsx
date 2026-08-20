@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { api } from '../utils/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { styles } from '../style'
 
 export default function ChildrenPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [identifier, setIdentifier] = useState('')
   const [limit,    setLimit]    = useState(120)
   const [selected, setSelected] = useState(null)
@@ -52,6 +54,9 @@ export default function ChildrenPage() {
     updateControlsMutation.mutate({ id, data: { dailyLimitMinutes: Number(limit) } })
   }
 
+  const handleChildClick = (childId) => {
+    navigate(`/dashboard/${childId}`)
+  }
 
   return (
     <div className="flex-1 overflow-auto p-4 sm:p-8 flex flex-col items-center">
@@ -95,15 +100,28 @@ export default function ChildrenPage() {
         {children.map(c => (
           <div key={c._id} className={`${styles.card} transition-all hover:border-surface-variant/80`}>
             <div className="flex items-start sm:items-center flex-col sm:flex-row gap-5">
-              <div className="w-14 h-14 flex-shrink-0 rounded-2xl bg-brand-600/20 flex items-center justify-center text-brand-300 text-xl font-bold border border-brand-500/20 shadow-inner">
-                {c.name[0].toUpperCase()}
+              {/* Clickable routing area */}
+              <div 
+                className="flex flex-1 items-center gap-5 cursor-pointer hover:opacity-80 transition-opacity" 
+                onClick={() => handleChildClick(c._id)}
+                title={`View ${c.name}'s Dashboard`}
+              >
+                <div className="w-14 h-14 flex-shrink-0 rounded-2xl bg-brand-600/20 flex items-center justify-center text-brand-300 text-xl font-bold border border-brand-500/20 shadow-inner">
+                  {c.name[0].toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-slate-100">{c.name}</p>
+                  <p className="text-sm text-slate-400 mt-0.5">{c.email} <span className="mx-2 text-slate-600">•</span> Age {c.ageGroup}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-lg font-semibold text-slate-100">{c.name}</p>
-                <p className="text-sm text-slate-400 mt-0.5">{c.email} <span className="mx-2 text-slate-600">•</span> Age {c.ageGroup}</p>
-              </div>
-              <button onClick={() => setSelected(selected === c._id ? null : c._id)}
-                className="btn-ghost text-sm px-5">
+
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevents clicking the button from triggering the dashboard navigation
+                  setSelected(selected === c._id ? null : c._id)
+                }}
+                className="btn-ghost text-sm px-5"
+              >
                 {selected === c._id ? 'Close' : 'Set limits'}
               </button>
             </div>
