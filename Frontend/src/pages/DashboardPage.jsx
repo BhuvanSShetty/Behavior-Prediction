@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { styles } from '../style'
 
+// Format decimal minutes to "X min Y sec" or just "X sec"
 const formatDuration = (minutes) => {
   if (!minutes || minutes === 0) return '0s'
   const mins = Math.floor(minutes)
@@ -85,15 +86,15 @@ export default function DashboardPage() {
         return {
           ...dashboard,
           isDaySpecific: true,
-          todayPlayTime: dayData.min || dayData.dailyTotalTime || 0,
-          sessionCount: dayData.sessions || dayData.sessionsPerDay || 0,
-          addictionRisk: dayData.addictionRisk || dashboard.addictionRisk, 
-          nightSessions: dayData.nightSessions || dayData.nightCount || 0,
-          trend: dayData.trend || 0,
-          avgSessionDuration: dayData.avgSessionDuration || 0,
-          shortSessionRatio: dayData.shortSessionRatio || 0,
-          reopenCount: dayData.reopenCount || 0,
-          interSessionGap: dayData.interSessionGap || 0,
+          todayPlayTime: dayData.min ?? dayData.dailyTotalTime ?? 0,
+          sessionCount: dayData.sessions ?? dayData.sessionsPerDay ?? 0,
+          addictionRisk: dayData.addictionRisk ?? dashboard.addictionRisk, 
+          nightSessions: dayData.nightSessions ?? dayData.nightCount ?? 0,
+          trend: dayData.trend ?? 0,
+          avgSessionDuration: dayData.avgSessionDuration ?? 0,
+          shortSessionRatio: dayData.shortSessionRatio ?? 0,
+          reopenCount: dayData.reopenCount ?? 0,
+          interSessionGap: dayData.interSessionGap ?? 0,
         }
       }
     }
@@ -205,7 +206,7 @@ export default function DashboardPage() {
 
           <div className={`${styles.card} mt-6`}>
             <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-4">Addiction risk score</p>
-            <RiskBar value={dashboard.addictionRisk} />
+            <RiskBar value={displayedDashboard.addictionRisk} />
           </div>
 
           <div className={`${styles.card} mt-6`}>

@@ -1,147 +1,266 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { StateBadge } from '../components/StateBadge'
+import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { styles } from '../style'
 
-export default function ChildrenPage() {
-  const queryClient = useQueryClient()
+// Format decimal minutes to "X min Y sec" or just "X sec"
+const formatDuration = (minutes) => {
+  if (!minutes || minutes === 0) return '0 sec'
+  const mins = Math.floor(minutes)
+  const secs = Math.round((minutes - mins) * 60)
+  if (mins === 0) return `${secs} sec`
+  if (secs === 0) return `${mins} min`
+  return `${mins} min ${secs} sec`
+}
+
+const istDayKey = (dateInput) => {
+  const parts = new Intl.DateTimeFormat('en-IN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Kolkata'
+  }).formatToParts(new Date(dateInput))
+
+  const year = parts.find(p => p.type === 'year')?.value
+  const month = parts.find(p => p.type === 'month')?.value
+  const day = parts.find(p => p.type === 'day')?.value
+  return `${year}-${month}-${day}`
+}
+
+export default function ChildDashboardPage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
-  const [identifier, setIdentifier] = useState('')
-  const [limit,    setLimit]    = useState(120)
-  const [selected, setSelected] = useState(null)
-  const [msg,      setMsg]      = useState('')
-  const [error,    setError]    = useState('')
-
-  const { data: childrenResponse, isLoading } = useQuery({
-    queryKey: ['children'],
-    queryFn: api.getChildren
+  const [stats, setStats] = useState({
+    totalToday: 0,
+    totalWeek: 0,
+    sessionsToday: 0,
+    latestState: null
   })
 
-  const children = childrenResponse?.data || []
+  const { data: sessionResponse, isLoading: loading } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: api.getSessions
+  })
 
-  const linkMutation = useMutation({
-    mutationFn: (id) => api.linkChild(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['children'] })
-      setMsg('Child linked successfully ✓')
-      setIdentifier('')
-    },
-    onError: (e) => {
-      setError(e.response?.data?.message || 'Failed to link')
+  const sessions = sessionResponse?.data || []
+
+  useEffect(() => {
+    if (sessions.length >= 0) {
+      calculateStats(sessions)
     }
-  })
+  }, [sessions])
 
-  const updateControlsMutation = useMutation({
-    mutationFn: ({ id, data }) => api.updateControls(id, data),
-    onSuccess: () => {
-      setMsg('Controls updated ✓')
-      setSelected(null)
-    },
-    onError: () => {
-      setError('Failed to update')
+  const calculateStats = (data) => {
+    const parts = new Intl.DateTimeFormat('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Kolkata'
+    }).formatToParts(new Date())
+
+    const year = parts.find(p => p.type === 'year')?.value
+    const month = parts.find(p => p.type === 'month')?.value
+    const day = parts.find(p => p.type === 'day')?.value
+
+    const todayIST = new Date(`${year}-${month}-${day}T00:00:00+05:30`);
+    const weekAgoIST = new Date(todayIST.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const todayKeyIST = istDayKey(todayIST)
+
+    const todaySessions = data.filter(s => {
+      const sessionDate = new Date(s.raw?.start || s.createdAt)
+      return istDayKey(sessionDate) === todayKeyIST
+    })
+
+    const weekSessions = data.filter(s => {
+      const sessionDate = new Date(s.raw?.start || s.createdAt)
+      return sessionDate >= weekAgoIST
+    })
+
+    const totalToday = todaySessions.reduce((sum, s) => sum + (s.raw?.duration || 0), 0)
+    const totalWeek = weekSessions.reduce((sum, s) => sum + (s.raw?.duration || 0), 0)
+    const latest = data[0]
+
+    setStats({
+      totalToday,
+      totalWeek,
+      sessionsToday: todaySessions.length,
+      latestState: latest?.prediction?.state || 'unknown'
+    })
+  }
+
+  const getRiskLevel = (state) => {
+    const levels = {
+      'normal': { label: 'Normal', color: 'emerald', icon: '✓' },
+      'addicted': { label: 'Addicted', color: 'red', icon: '⚠' },
+      'frustrated': { label: 'Frustrated', color: 'amber', icon: '!' },
+      'unknown': { label: 'Unknown', color: 'slate', icon: '?' }
     }
-  })
-
-  const link = () => {
-    setMsg(''); setError('')
-    if (!identifier.trim()) return
-    linkMutation.mutate(identifier.trim())
+    return levels[state] || levels['unknown']
   }
 
-  const saveControls = (id) => {
-    setMsg(''); setError('')
-    updateControlsMutation.mutate({ id, data: { dailyLimitMinutes: Number(limit) } })
-  }
-
-  const handleChildClick = (childId) => {
-    navigate(`/dashboard/${childId}`)
-  }
+  const risk = getRiskLevel(stats.latestState)
 
   return (
-    <div className="flex-1 overflow-auto p-4 sm:p-8 flex flex-col items-center">
-      <div className="w-full max-w-3xl space-y-8 pb-24 mt-4">
-        <div className="border-b border-surface-variant/50 pb-6">
-          <h1 className={`${styles.heading2} tracking-tight text-white mb-2`}>Children Management</h1>
-          <p className="text-sm text-slate-400">Link child accounts and configure automated behavioral boundaries.</p>
-        </div>
-
-        <div className={`${styles.card} w-full`}>
-          <p className="text-xs font-bold text-slate-400 tracking-wider uppercase mb-5">Link a new account</p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-xl">
-            <input className={`${styles.inputField} flex-1`} placeholder="Enter child's name or email" value={identifier}
-              onChange={e => setIdentifier(e.target.value)} />
-            <button className={`${styles.buttonPrimary} sm:w-auto px-6`} onClick={link} disabled={linkMutation.isPending}>
-              {linkMutation.isPending ? 'Linking...' : 'Link Child'}
-            </button>
-          </div>
-          {msg   && <p className="text-emerald-400 text-sm font-medium mt-4 bg-emerald-950/30 py-2 px-3 rounded-xl border border-emerald-500/20 inline-block">{msg}</p>}
-          {error && <p className="text-red-400 text-sm font-medium mt-4 bg-red-950/30 py-2 px-3 rounded-xl border border-red-500/20 inline-block">{error}</p>}
-          <p className="text-xs text-slate-500 mt-4 leading-relaxed max-w-xl">
-            Enter the child's registered email address (recommended for an exact match) or their full name. If multiple children share the same name, use their email instead.
+    <div className="flex-1 overflow-auto p-6 space-y-6">
+      {/* Welcome header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={styles.heading1}>
+            Hey {user?.name?.split(' ')[0]} 👋
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })}
           </p>
         </div>
+      </div>
 
-        <div className="space-y-4 w-full pt-4">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Linked Accounts ({children.length})</h2>
-        {isLoading && (
-          <div className={`${styles.card} text-center py-16 border border-dashed border-surface-variant/50`}>
-            <p className="text-slate-400 font-medium">Loading...</p>
-          </div>
-        )}
-        {!isLoading && children.length === 0 && (
-          <div className={`${styles.card} text-center py-16 border border-dashed border-surface-variant/50`}>
-            <p className="text-slate-400 font-medium">No children linked yet</p>
-          </div>
-        )}
-        {children.map(c => (
-          <div key={c._id} className={`${styles.card} transition-all hover:border-surface-variant/80`}>
-            <div className="flex items-start sm:items-center flex-col sm:flex-row gap-5">
-              
-              <div 
-                className="flex flex-1 items-center gap-5 cursor-pointer hover:opacity-80 transition-opacity" 
-                onClick={() => handleChildClick(c._id)}
-                title={`View ${c.name}'s Dashboard`}
-              >
-                <div className="w-14 h-14 flex-shrink-0 rounded-2xl bg-brand-600/20 flex items-center justify-center text-brand-300 text-xl font-bold border border-brand-500/20 shadow-inner">
-                  {c.name[0].toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-lg font-semibold text-slate-100">{c.name}</p>
-                  <p className="text-sm text-slate-400 mt-0.5">{c.email} <span className="mx-2 text-slate-600">•</span> Age {c.ageGroup}</p>
-                </div>
-              </div>
-
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelected(selected === c._id ? null : c._id)
-                }}
-                className="btn-ghost text-sm px-5"
-              >
-                {selected === c._id ? 'Close' : 'Set limits'}
-              </button>
+      {/* Main stats grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Today's playtime */}
+        <div className={`${styles.card} border-white/5 hover:border-white/10 transition-colors flex flex-col`}>
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Today's playtime</p>
+              <p className="text-4xl font-bold text-white mt-3 tracking-tight">{formatDuration(stats.totalToday)}</p>
             </div>
-
-            {selected === c._id && (
-              <div className="mt-6 pt-6 border-t border-white/5 space-y-4">
-                <div className="bg-surface-low/50 p-5 rounded-2xl border border-surface-variant/30">
-                  <label className="text-sm font-medium text-slate-300 mb-3 block">Daily limit (minutes)</label>
-                  <div className="flex gap-4">
-                    <input type="number" className={`${styles.inputField} w-32 text-lg text-center font-mono placeholder:font-sans`} value={limit} min={10} max={480}
-                      onChange={e => setLimit(e.target.value)} />
-                    <button className={styles.buttonPrimary} onClick={() => saveControls(c._id)} disabled={updateControlsMutation.isPending}>
-                      {updateControlsMutation.isPending && updateControlsMutation.variables?.id === c._id ? 'Saving...' : 'Save changes'}
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-3">Limits automatically block long gaming sessions and generate alerts.</p>
-                </div>
-              </div>
-            )}
+            <div className="w-12 h-12 bg-brand-600/20 rounded-xl flex items-center justify-center text-brand-400 text-xl border border-brand-500/20">
+              🎮
+            </div>
           </div>
-        ))}
+          <div className="mt-auto pt-4 border-t border-white/5">
+            <p className="text-sm text-slate-500 font-medium">
+              This week: <span className="text-slate-300 ml-1">{formatDuration(stats.totalWeek)}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Sessions today */}
+        <div className={`${styles.card} border-white/5 hover:border-white/10 transition-colors flex flex-col`}>
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Sessions today</p>
+              <p className="text-4xl font-bold text-white mt-3 tracking-tight">{stats.sessionsToday}</p>
+              <p className="text-sm text-slate-500 mt-1 font-medium">active sessions</p>
+            </div>
+            <div className="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center text-emerald-400 text-xl border border-emerald-500/20">
+              📊
+            </div>
+          </div>
+          <div className="mt-auto pt-4 border-t border-white/5">
+            <p className="text-sm text-slate-500 font-medium">
+              Avg: <span className="text-slate-300 ml-1">
+                {stats.sessionsToday > 0 ? formatDuration(stats.totalToday / stats.sessionsToday) : '0s'} / session
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Current status */}
+        <div className={`${styles.card} border-white/5 hover:border-white/10 transition-colors overflow-hidden relative flex flex-col`}>
+          <div className={`absolute inset-0 bg-${risk.color}-500/5 mix-blend-overlay pointer-events-none`} />
+          <div className="flex items-start justify-between mb-4 relative z-10">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase">Your status</p>
+              <div className="mt-4">
+                <StateBadge state={stats.latestState} />
+              </div>
+              <p className="text-sm text-slate-500 mt-3 font-medium">Based on latest session</p>
+            </div>
+            <div className={`w-12 h-12 bg-${risk.color}-600/20 rounded-xl flex items-center justify-center text-${risk.color}-400 text-xl border border-${risk.color}-500/20`}>
+              {risk.icon}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Action cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <button onClick={() => navigate('/history')}
+          className={`${styles.card} w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">View all sessions</p>
+              <p className="text-xl text-white font-semibold group-hover:text-brand-300 transition-colors">
+                {sessions.length} total sessions
+              </p>
+              <p className="text-sm text-slate-500 mt-1">See detailed history</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-surface-variant/50 flex items-center justify-center group-hover:bg-brand-600/20 transition-colors">
+              <span className="text-xl text-slate-400 group-hover:text-brand-400 group-hover:translate-x-1 transition-all">→</span>
+            </div>
+          </div>
+        </button>
+
+        <button onClick={() => {}} 
+          className={`${styles.card} w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">Gaming tips</p>
+              <p className="text-xl text-white font-semibold group-hover:text-emerald-300 transition-colors">
+                Stay healthy
+              </p>
+              <p className="text-sm text-slate-500 mt-1">Get recommendations</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-surface-variant/50 flex items-center justify-center group-hover:bg-emerald-600/20 transition-colors">
+              <span className="text-xl text-slate-400 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all">→</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Recent session preview */}
+      {!loading && sessions.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-slate-400 uppercase mb-3">Recent activity</h2>
+          <div className="space-y-2">
+            {sessions.slice(0, 3).map((s, idx) => {
+              const startTime = new Date(s.raw?.start || s.createdAt)
+              const endTime = new Date(s.raw?.end || new Date().toISOString())
+              return (
+                <div key={s._id} className={`${styles.card} flex items-center justify-between hover:border-surface-variant/50 transition-colors`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-surface-variant/50 flex items-center justify-center text-sm font-mono text-brand-300 shadow-inner shadow-white/5">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-slate-100">
+                        {startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        {' '}
+                        <span className="text-slate-500 font-normal mx-1">to</span>
+                        {' '}
+                        {endTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-sm text-slate-400 mt-0.5 font-medium">
+                        {formatDuration(s.raw?.duration || 0)}
+                      </p>
+                    </div>
+                  </div>
+                  <StateBadge state={s.prediction?.state} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex justify-center py-16">
+          <div className={styles.spinner} />
+        </div>
+      )}
+
+      {!loading && sessions.length === 0 && (
+        <div className={`${styles.card} text-center py-16 border-dashed border-slate-700`}>
+          <p className="text-5xl mb-4">🎮</p>
+          <p className="text-slate-300 font-medium mb-1">No sessions yet</p>
+          <p className="text-slate-600 text-sm">Start logging your gaming sessions to see your stats here!</p>
+        </div>
+      )}
     </div>
   )
 }
