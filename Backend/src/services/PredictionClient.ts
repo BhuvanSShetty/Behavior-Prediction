@@ -16,15 +16,24 @@ export class PredictionClient {
             addictionRisk: 0,
         };
 
+        const url = `${this.baseUrl}/predict`;
         try {
+            console.log(`[PredictionClient] Calling ML service: POST ${url}`);
             const response = await axios.post<IPrediction>(
-                `${this.baseUrl}/predict`,
+                url,
                 { features },
                 { timeout: 5000 },
             );
+            console.log(`[PredictionClient] ML response:`, JSON.stringify(response.data));
             return response.data;
-        } catch {
-            console.warn('ML service unreachable — prediction skipped');
+        } catch (err: unknown) {
+            const axiosErr = err as { message?: string; code?: string; response?: { status?: number; data?: unknown } };
+            console.error(`[PredictionClient] ML service error calling ${url}:`, {
+                message: axiosErr.message,
+                code: axiosErr.code,
+                status: axiosErr.response?.status,
+                data: axiosErr.response?.data,
+            });
             return fallback;
         }
     }
