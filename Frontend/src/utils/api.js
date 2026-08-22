@@ -21,7 +21,14 @@ export const api = {
   me:       ()        => axios.get('/api/auth/me'),
 
   // Sessions
-  getSessions: ()     => axios.get('/api/sessions/my'),
+  getSessions:  ()     => axios.get('/api/sessions/my'),
+  logSession:   (data) => axios.post('/api/sessions/log', {
+    raw: {
+      start:    data.start,
+      end:      data.end,
+      duration: data.duration,
+    }
+  }),
 
   // Parent
   getChildren:   ()         => axios.get('/api/parent/children'),

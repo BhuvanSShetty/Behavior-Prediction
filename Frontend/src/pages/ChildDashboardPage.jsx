@@ -87,7 +87,7 @@ export default function ChildDashboardPage() {
       totalToday,
       totalWeek,
       sessionsToday: todaySessions.length,
-      latestState: latest?.prediction?.state || 'unknown'
+      latestState: latest?.prediction?.state || 'Unknown'
     })
   }
 
@@ -98,7 +98,8 @@ export default function ChildDashboardPage() {
       'frustrated': { label: 'Frustrated', color: 'amber', icon: '!' },
       'unknown': { label: 'Unknown', color: 'slate', icon: '?' }
     }
-    return levels[state] || levels['unknown']
+    // ML service returns Title Case ('Normal', 'Addicted', etc.) — normalize to lowercase for lookup
+    return levels[state?.toLowerCase()] || levels['unknown']
   }
 
   const risk = getRiskLevel(stats.latestState)
