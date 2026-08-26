@@ -191,6 +191,7 @@ export class NotificationService {
         const time = new Date(startedAt).toLocaleTimeString('en-IN', {
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'Asia/Kolkata'
         });
         await sendMail({
             to: parentEmail,
