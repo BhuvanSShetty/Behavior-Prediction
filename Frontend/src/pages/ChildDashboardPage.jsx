@@ -179,7 +179,8 @@ export default function ChildDashboardPage() {
 
       {/* Action cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        <button onClick={() => navigate('/history')}
+        <button 
+          onClick={() => navigate('/history')}
           className={`${styles.card} w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer`}
         >
           <div className="flex items-center justify-between">
@@ -196,7 +197,8 @@ export default function ChildDashboardPage() {
           </div>
         </button>
 
-        <button onClick={() => {}} 
+        <button 
+          onClick={() => {}} 
           className={`${styles.card} w-full text-left border-white/5 hover:border-white/10 hover:bg-surface-variant/40 transition-all group cursor-pointer`}
         >
           <div className="flex items-center justify-between">
