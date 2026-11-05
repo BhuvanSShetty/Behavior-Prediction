@@ -1,0 +1,39 @@
+# Node
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python / ML
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.pkl
+feedback_data.csv
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+keys/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
