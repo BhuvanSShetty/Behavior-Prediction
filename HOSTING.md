@@ -24,7 +24,8 @@ graph TD
 ```
 
 ### Infrastructure Details
-- **Server**: AWS EC2 `t3.small` (2 vCPUs, 2 GB RAM, 8 GB EBS SSD) in `ap-south-1` (Mumbai).
+- **Infrastructure as Code**: Fully automated using Terraform in [`terraform/`](file:///Users/bhuvansshetty/projects/major/Behavior-Prediction/terraform). Deploy to any AWS account with `terraform apply`.
+- **Server**: AWS EC2 `t3.small` (2 vCPUs, 2 GB RAM, 25 GB gp3 EBS SSD) in `ap-south-1` (Mumbai) or any AWS region.
 - **Domain & SSL**: Hosted at **`https://api.bhuvans.in`** with automated Let's Encrypt SSL/TLS certificates and full WebSocket upgrade support (`wss://api.bhuvans.in/ws`).
 - **Persistence for ML Feedback**: By hosting `ml-service` on EC2 with persistent disk storage, feedback data (`feedback_data.csv`) and hot-swapped retraining models (`model.pkl`) are permanently preserved across reboots.
 

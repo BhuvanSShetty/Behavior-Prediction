@@ -2,7 +2,12 @@
 set -e
 
 PUBLIC_IP="${EC2_IP:-<YOUR_EC2_IP>}"
-KEY="~/.ssh/behavior-prediction-key.pem"
+KEY="${KEY_PATH:-~/.ssh/behavior-prediction-key.pem}"
+# Fallback to Terraform-generated key if available
+if [ ! -f "$KEY" ] && ls terraform/keys/*.pem 1> /dev/null 2>&1; then
+  KEY=$(ls terraform/keys/*.pem | head -n 1)
+  echo "Using Terraform-generated SSH key: $KEY"
+fi
 REMOTE_USER="ubuntu"
 DOMAIN="api.bhuvans.in"
 

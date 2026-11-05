@@ -1,0 +1,36 @@
+# ==========================================
+# Behavior Prediction Backend - Terraform Variables
+# ==========================================
+
+# AWS CLI profile (configured in ~/.aws/credentials)
+# Leave as "" to use default credentials or environment variables (AWS_ACCESS_KEY_ID, etc.)
+aws_profile = ""
+
+# AWS Region to deploy into
+aws_region  = "ap-south-1"
+
+# Environment / account identifier (e.g. dev, prod, staging, account-1)
+environment = "prod"
+
+# Project identifier tag
+project_name = "behavior-prediction"
+
+# EC2 Instance Type (t3.small recommended: 2 vCPUs, 2 GB RAM)
+instance_type = "t3.small"
+
+# EBS Root Volume size in GB (gp3)
+root_volume_size = 25
+
+# Allocate static Elastic IP (set to false to avoid extra AWS IPv4 charges)
+allocate_elastic_ip = false
+
+# Generate a new SSH key pair automatically and save to terraform/keys/
+create_key_pair = true
+
+# If create_key_pair = false, provide an existing EC2 Key Pair name in this AWS account:
+# existing_key_name = "my-existing-key"
+
+# Restrict SSH access to your own IP address for enhanced security (optional)
+# allowed_ssh_cidr = ["YOUR_PUBLIC_IP/32"]
+allowed_ssh_cidr = ["0.0.0.0/0"]
+

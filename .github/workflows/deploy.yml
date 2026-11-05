@@ -23,7 +23,7 @@ jobs:
           source: "."
           target: "~/app"
           rm: false
-          exclude: "node_modules,.git,.vscode,dist,__pycache__,Frontend"
+          exclude: "node_modules,.git,.vscode,dist,__pycache__,Frontend,terraform"
 
       - name: Rebuild and restart Docker containers on EC2
         uses: appleboy/ssh-action@v1.0.3
