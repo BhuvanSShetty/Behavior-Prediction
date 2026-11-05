@@ -96,6 +96,24 @@ Monitoring children's gaming behavior is challenging when:
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+
+### Detailed System Architecture
+
+The following diagram illustrates the complete system architecture, including the mobile application, backend services, ML service, database, alerts, and dashboard integrations.
+
+<p align="center">
+  <img src="assets/system-architecture.jpeg" alt="Detailed System Architecture" width="100%" />
+</p>
+
+### End-to-End Data Flow Architecture
+
+The following diagram illustrates the flow of gaming session data, ML predictions, real-time notifications, and feedback-driven model retraining.
+
+<p align="center">
+  <img src="assets/data-flow-architecture.png" alt="End-to-End Data Flow Architecture" width="100%" />
+</p>
+
+
 ---
 
 ## ML Pipeline
@@ -555,5 +573,8 @@ docker run -p 5050:5050 --env-file .env behavior-backend
 ---
 
 <p align="center">
-  Built by <a href="https://github.com/BhuvanSShetty">Bhuvan S Shetty</a> &amp; <a href="https://github.com/Abhishekrana30">Abhishek Rana</a>
+  Built by 
+  <a href="https://github.com/BhuvanSShetty">Bhuvan S Shetty</a>, 
+  <a href="https://github.com/Abhishekrana30">Abhishek Rana</a> &amp;
+  <a href="https://github.com/bhargavrock12">Bhargav P</a>
 </p>
