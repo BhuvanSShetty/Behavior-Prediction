@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/server.ts",
+    "console": "tsx src/console.ts",
+    "console:prod": "node dist/console.js",
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
