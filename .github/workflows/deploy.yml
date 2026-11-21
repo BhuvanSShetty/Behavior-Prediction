@@ -20,10 +20,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "."
+          source: "Backend,ML,docker-compose.yml"
           target: "~/app"
           rm: false
-          exclude: "node_modules,.git,.vscode,dist,__pycache__,Frontend,terraform"
 
       - name: Rebuild and restart Docker containers on EC2
         uses: appleboy/ssh-action@v1.0.3
